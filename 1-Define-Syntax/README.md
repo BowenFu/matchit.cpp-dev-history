@@ -9,8 +9,8 @@ We heard of rust lots of times recently. Let's take a look at Rust pattern match
 ```rust
 let num = Some(4);
 match num {
-	Some(x) if x < 5 => println!("less than five: {}", x), Some(x) => println!("{}", x),
-	None => (),
+  Some(x) if x < 5 => println!("less than five: {}", x), Some(x) => println!("{}", x),
+  None => (),
 }
 ```
 

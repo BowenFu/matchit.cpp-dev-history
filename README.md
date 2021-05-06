@@ -6,5 +6,5 @@ In the process, you will learn the process of developing a library and some usef
 
 Content:
 
-1. [Define the pattern matching syntax.](./1-Define-Syntax/Define-syntax.md)
-2. [First Try.](./2-First-Try/First-try.md)
+1. [Define the pattern matching syntax.](./1-Define-Syntax/)
+2. [First Try.](./2-First-Try/)
