@@ -49,10 +49,10 @@ We also heard that `pattern matching` should contains all functionality of `swit
 ```C++
 switch (state) {
   case normal_score_state:
-		func1(state);
-		break;
+    func1(state);
+    break;
   case forty_scoring_state:
- 	  func2(state);
+    func2(state);
     break;
 };
 ```
@@ -62,10 +62,10 @@ So a naive idea is to have somthing like
 ```C++
 match (state) {
   case normal_score_state:
-		func1(state);
-		break;
+    func1(state);
+    break;
   case forty_scoring_state:
- 	  func2(state);
+    func2(state);
     break;
 };
 ```
@@ -77,7 +77,7 @@ What about
 ```C++
 match (state) {
   normal_score_state : func1(state);
-	forty_scoring_state : func2(state);
+  forty_scoring_state : func2(state);
 };
 ```
 
@@ -90,7 +90,7 @@ Then we can have
 ```C++
 match (state) (
   normal_score_state = func1,
-	forty_scoring_state = func2
+  forty_scoring_state = func2
 );
 ```
 
@@ -113,8 +113,8 @@ auto match(T const& t)
 What do the two lines inside the second `()` do?
 
 ```C++
-  normal_score_state = func1,
-	forty_scoring_state = func2
+normal_score_state = func1,
+forty_scoring_state = func2
 ```
 
 We want to match `state` against the two value patterns, `normal_score_state` and `forty_scoring_state`. When ``normal_score_state` is matched, func1 will be called. When`forty_scoring_state`. is matched, func2 will be called. We need to ensure that there are no cases escaping. 
@@ -124,7 +124,7 @@ That said, we need to hold the `pattern` info and the `action`. The assignment o
 ```C++
 match (state) (
   pattern(normal_score_state) = func1,
-	pattern(forty_scoring_state) = func2
+  pattern(forty_scoring_state) = func2
 );
 ```
 
