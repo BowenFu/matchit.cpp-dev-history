@@ -35,7 +35,7 @@ Hmmm, more like function overloading in C++. Not something we can borrow to C++.
 
 What about Racket!
 
-```scheme
+```Racket
 > (match '(1 2)
     [(list x) (+ x 1)]
     [(list x y) (+ x y)])

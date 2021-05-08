@@ -78,12 +78,12 @@ class PatternPair
 public:
     PatternPair(Pattern const& pattern, Func const& func)
         : mPattern{pattern}
-        , mFunc{func}
+        , mHandler{func}
     {
     }
 private:
     Pattern const& mPattern;
-    Func const& mFunc;
+    Func const& mHandler;
 };
 ```
 
@@ -113,7 +113,7 @@ bool match(Value const& value) const
 template <typename Value>
 auto execute(Value const& value) const
 {
-    return mFunc(value);
+    return mHandler(value);
 }
 ```
 
@@ -176,6 +176,4 @@ Passed!
 ```
 
 Now we are all done!
-Open question is what happen if no patterns get matched. How can we implement a `default` case?
-
-
+Now we have an open question: what happens if no patterns get matched. How can we implement a `default` case?

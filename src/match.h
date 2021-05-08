@@ -84,7 +84,7 @@ public:
 
     PatternPair(Pattern const& pattern, Func const& func)
         : mPattern{pattern}
-        , mFunc{func}
+        , mHandler{func}
     {
     }
     template <typename Value>
@@ -105,10 +105,10 @@ private:
     template <typename Value>
     auto execute(Value const& value) const
     {
-        return mFunc(value);
+        return mHandler(value);
     }
     Pattern const& mPattern;
-    Func const& mFunc;
+    Func const& mHandler;
 };
 
 template <typename Pattern>
