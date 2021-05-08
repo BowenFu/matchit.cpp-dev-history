@@ -89,6 +89,7 @@ private:
 
 `MatchHelper::operator()` is not trival. What do you expect that function to do?
 The main work should be done there -- match first pattern and execute its task.
+(Not like best match like function overloading or template specialization in C++. First match is a common practice in pattern matching since users can define priority of patterns.)
 Sounds like we need to call something like `std::find_if` or loop over all patterns.
 Let's do it!
 (Here we requires all PatternPairs are of the same type. Otherwise the compilation would fail.)
