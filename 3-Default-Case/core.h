@@ -32,6 +32,7 @@ public:
             return false;
         };
         bool const matched = (func(patterns) || ...);
+        assert(matched);
         return result;
     }
 private:
