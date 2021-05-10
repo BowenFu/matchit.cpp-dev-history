@@ -23,8 +23,8 @@ void testMatch(V const &input, U const &expected)
         pattern(_ < 0) = [](int32_t){ return -1; },
         pattern(_ < 10) = [](int32_t){ return -10; },
         pattern(and_(_ < 17, _ > 15)) = [](int32_t){ return 16; },
-        pattern(app([](int32_t x){return x*x; }, 100)) = [](int32_t){ return 100; },
         pattern(app([](int32_t x){return x*x; }, when([](auto&& x){return x > 1000; }))) = [](int32_t){ return 1000; },
+        pattern(app([](int32_t x){return x*x; }, ii)) = [&ii](int32_t){ return ii.value(); },
         pattern(ii) = [&ii](int32_t){ return ii.value() + 1; },
         pattern(_) = [](int32_t){ return 111; }
     );
@@ -43,7 +43,7 @@ int32_t main()
 {
     testMatch(1, true);
     testMatch(2, 12);
-    testMatch(11, 12); // Id matched.
+    testMatch(11, 121); // Id matched.
     testMatch(59, 12); // or_ matched.
     testMatch(-5, -1); // when matched.
     testMatch(10, 100); // app matched.
