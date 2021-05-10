@@ -15,6 +15,7 @@ template <typename V, typename U>
 void testMatch(V const &input, U const &expected)
 {
     Id<int> ii;
+    ii.match(5);
     auto x = match(input)(
         pattern(1) = func1,
         pattern(2) = func2,

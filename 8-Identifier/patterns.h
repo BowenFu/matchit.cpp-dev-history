@@ -10,6 +10,12 @@ bool match(Pattern const& pattern, Value const& value)
     return PatternTraits<Pattern>::match(pattern, value);
 }
 
+template <typename Pattern>
+void resetId(Pattern const& pattern)
+{
+    PatternTraits<Pattern>::resetId(pattern);
+}
+
 template <typename Pattern, typename Func>
 class PatternPair
 {
@@ -25,6 +31,7 @@ public:
     template <typename Value>
     bool match(Value const& value) const
     {
+        resetId(mPattern);
         return ::match(mPattern, value);
     }
     template <typename Value>
@@ -71,6 +78,9 @@ public:
     {
         return pattern == value;
     }
+    static void resetId(Pattern const&)
+    {
+    }
 };
 
 template <>
@@ -83,6 +93,8 @@ public:
     {
         return true;
     }
+    static void resetId(Pattern const&)
+    {}
 };
 
 
@@ -121,6 +133,15 @@ public:
             },
             orPat.patterns());
     }
+    static void resetId(Or<Patterns...> const& orPat)
+    {
+        return std::apply(
+            [](Patterns const&... patterns)
+            {
+                return (::resetId(patterns), ...);
+            },
+            orPat.patterns());
+    }
 };
 
 template <typename Pred>
@@ -152,6 +173,9 @@ public:
     static bool match(When<Pred> const& whenPat, Value const& value)
     {
         return whenPat.predicate()(value);
+    }
+    static void resetId(When<Pred> const& whenPat)
+    {
     }
 };
 
@@ -190,6 +214,10 @@ public:
     static bool match(App<Unary, Pattern> const& appPat, Value const& value)
     {
         return ::match(appPat.pattern(), appPat.unary()(value));
+    }
+    static void resetId(App<Unary, Pattern> const& appPat)
+    {
+        return ::resetId(appPat.pattern());
     }
 };
 
@@ -252,6 +280,15 @@ public:
             },
             andPat.patterns());
     }
+    static void resetId(And<Patterns...> const& andPat)
+    {
+        return std::apply(
+            [](Patterns const&... patterns)
+            {
+                return (::resetId(patterns), ...);
+            },
+            andPat.patterns());
+    }
 };
 
 template <typename Type>
@@ -269,6 +306,10 @@ public:
         mHasValue = true;
         mValue = value;
         return true;
+    }
+    void reset() const
+    {
+        mHasValue = false;
     }
     Type& value() const
     {
@@ -288,6 +329,10 @@ public:
     static bool match(Id<Type> const& idPat, Value const& value)
     {
         return idPat.match(value);
+    }
+    static void resetId(Id<Type> const& idPat)
+    {
+        idPat.reset();
     }
 };
 
