@@ -18,7 +18,9 @@ void testMatch(V const &input, U const &expected)
         pattern(1) = func1,
         pattern(2) = func2,
         pattern(or_(56, 59)) = func2,
-        pattern(when([](auto&& x){return x < 0; })) = [](int32_t){ return -1; },
+        // pattern(when([](auto&& x){return x < 0; })) = [](int32_t){ return -1; },
+        pattern(_ < 0) = [](int32_t){ return -1; },
+        pattern(_ < 10) = [](int32_t){ return -10; },
         pattern(app([](int32_t x){return x*x; }, 100)) = [](int32_t){ return 100; },
         pattern(app([](int32_t x){return x*x; }, when([](auto&& x){return x > 1000; }))) = [](int32_t){ return 1000; },
         pattern(_) = [](int32_t){ return 111; }
@@ -30,7 +32,7 @@ void testMatch(V const &input, U const &expected)
     }
     else
     {
-        printf("Failed!\n");
+        printf("Failed! result: %lld, expected: %d\n", x, expected);
     }
 }
 
@@ -43,5 +45,6 @@ int32_t main()
     testMatch(-5, -1); // when matched.
     testMatch(10, 100); // app matched.
     testMatch(100, 1000); // app > when matched.
+    testMatch(5, -10); // _ < 10 matched.
     return 0;
 }

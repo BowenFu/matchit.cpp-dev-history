@@ -135,7 +135,7 @@ public:
         return mPred;
     }
 private:
-    Pred const& mPred;
+    Pred const mPred;
 };
 
 template <typename Pred>
@@ -192,5 +192,29 @@ public:
         return ::match(appPat.pattern(), appPat.unary()(value));
     }
 };
+
+template <typename T>
+auto operator<(WildCard const&, T const& t)
+{
+    return when([t](auto&& p){ return p < t;});
+}
+
+template <typename T>
+auto operator<=(WildCard const&, T const& t)
+{
+    return when([t](auto&& p){return p <= t;});
+}
+
+template <typename T>
+auto operator>=(WildCard const&, T const& t)
+{
+    return when([t](auto&& p){return p >= t;});
+}
+
+template <typename T>
+auto operator>(WildCard const&, T const& t)
+{
+    return when([t](auto&& p){return p > t;});
+}
 
 #endif // _PATTERNS_H_

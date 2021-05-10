@@ -149,4 +149,28 @@ public:
     }
 };
 
+template <typename T>
+auto operator<(WildCard const&, T const& t)
+{
+    return when([t](auto&& p){ return p < t;});
+}
+
+template <typename T>
+auto operator<=(WildCard const&, T const& t)
+{
+    return when([t](auto&& p){return p <= t;});
+}
+
+template <typename T>
+auto operator>=(WildCard const&, T const& t)
+{
+    return when([t](auto&& p){return p >= t;});
+}
+
+template <typename T>
+auto operator>(WildCard const&, T const& t)
+{
+    return when([t](auto&& p){return p > t;});
+}
+
 #endif // _PATTERNS_H_
