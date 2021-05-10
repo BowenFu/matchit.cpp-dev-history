@@ -1,3 +1,6 @@
+#ifndef _CORE_H_
+#define _CORE_H_
+
 #include <tuple>
 #include <optional>
 #include <cstdint>
@@ -73,3 +76,4 @@ PatternHelper<Pattern> pattern(Pattern const& p)
 {
     return PatternHelper<Pattern>{p};
 }
+#endif // _CORE_H_

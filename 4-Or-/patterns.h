@@ -1,51 +1,5 @@
-#ifndef _CORE_H_
-#define _CORE_H_
-#include <tuple>
-#include <optional>
-#include <cstdint>
-#include <algorithm>
-
-template <typename Value, typename... PatternPair>
-class PatternPairsRetType
-{
-public:
-    using RetType = std::common_type_t<typename PatternPair::template RetType<Value>...>;
-};
-
-template <typename Value>
-class MatchHelper
-{
-public:
-    explicit MatchHelper(Value const& value)
-        : mValue{value}
-        {}
-    template <typename... PatternPair>
-    auto operator()(PatternPair const&... patterns)
-    {
-        using RetType = typename PatternPairsRetType<Value, PatternPair...>::RetType;
-        RetType result{};
-        auto const func = [this, &result](auto const& pattern) -> bool
-        {
-            if (pattern.match(mValue))
-            {
-                result = pattern.execute(mValue);
-                return true;
-            }
-            return false;
-        };
-        bool const matched = (func(patterns) || ...);
-        assert(matched);
-        return result;
-    }
-private:
-    Value const& mValue;
-};
-
-template <typename Value>
-MatchHelper<Value> match(Value const& value)
-{
-    return MatchHelper<Value>{value};
-}
+#ifndef _PATTERNS_H_
+#define _PATTERNS_H_
 
 template <typename Pattern>
 class PatternTraits;
@@ -116,12 +70,51 @@ public:
 template <>
 class PatternTraits<WildCard>
 {
-public:
     using Pattern = WildCard;
+public:
     template <typename Value>
     static bool match(Pattern const&, Value const&)
     {
         return true;
     }
 };
-#endif // _CORE_H_
+
+
+template <typename... Patterns>
+class Or
+{
+public:
+    explicit Or(Patterns const&... patterns)
+        : mPatterns{patterns...}
+        {}
+    auto const& patterns() const
+    {
+        return mPatterns;
+    }
+private:
+    std::tuple<Patterns const&...> mPatterns;
+};
+
+template <typename... Patterns>
+auto or_(Patterns const&... patterns) -> Or<Patterns...>
+{
+    return Or<Patterns...>{patterns...};
+}
+
+template <typename... Patterns>
+class PatternTraits<Or<Patterns...>>
+{
+public:
+    template <typename Value>
+    static bool match(Or<Patterns...> const& orPat, Value const& value)
+    {
+        return std::apply(
+            [&value](Patterns const&... patterns)
+            {
+                return (PatternTraits<Patterns>::match(patterns, value) || ...);
+            },
+            orPat.patterns());
+    }
+};
+
+#endif // _PATTERNS_H_
