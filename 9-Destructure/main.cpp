@@ -79,9 +79,36 @@ int32_t test2()
     return 0;
 }
 
+struct A
+{
+    int a;
+    int b;
+};
+
+int32_t test3()
+{
+    auto const matchFunc = [](A const& input)
+    {
+        Id<int> i;
+        Id<int> j;
+        // compose patterns for destructuring struct A.
+        auto const dsA = and_(app(&A::a, i), app(&A::b, 1));
+        return match(input)(
+            // pattern(and_(app(&A::a, i), app(&A::b, j))) = [&i, &j](auto&&){ return i.value() + j.value(); },
+            pattern(dsA) = [&i](auto&&){ return i.value(); },
+            pattern(_) = [](auto&&){ return -1; }
+        );
+    };
+    testMatch(A{2, 1}, 2, matchFunc);
+    testMatch(A{2, 2}, -1, matchFunc);
+    return 0;
+}
+
+
 int main()
 {
     test1();
     test2();
+    test3();
     return 0;
 }

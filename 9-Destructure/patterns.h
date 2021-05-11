@@ -213,7 +213,7 @@ public:
     template <typename Value>
     static bool match(App<Unary, Pattern> const& appPat, Value const& value)
     {
-        return ::match(appPat.pattern(), appPat.unary()(value));
+        return ::match(appPat.pattern(), std::invoke(appPat.unary(), value));
     }
     static void resetId(App<Unary, Pattern> const& appPat)
     {
