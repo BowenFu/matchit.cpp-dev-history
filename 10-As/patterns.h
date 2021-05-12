@@ -1,6 +1,15 @@
 #ifndef _PATTERNS_H_
 #define _PATTERNS_H_
 
+#if 1
+#define REQUIRES(x) if (!(x)){throw std::runtime_error("##x");}
+#else
+#define REQUIRES(x)
+#endif
+
+#include <memory>
+#include <iostream>
+
 template <typename Pattern>
 class PatternTraits;
 
@@ -110,7 +119,7 @@ public:
         return mPatterns;
     }
 private:
-    std::tuple<Patterns const&...> mPatterns;
+    std::tuple<Patterns...> mPatterns;
 };
 
 template <typename... Patterns>
@@ -196,8 +205,8 @@ public:
         return mPattern;
     }
 private:
-    Unary const& mUnary;
-    Pattern const& mPattern;
+    Unary const mUnary;
+    Pattern const mPattern;
 };
 
 template <typename Unary, typename Pattern>
@@ -257,7 +266,7 @@ public:
         return mPatterns;
     }
 private:
-    std::tuple<Patterns const&...> mPatterns;
+    std::tuple<Patterns...> mPatterns;
 };
 
 template <typename... Patterns>
@@ -291,34 +300,45 @@ public:
     }
 };
 
+template <typename... T>
+class Debug;
+
 template <typename Type>
 class Id
 {
 public:
-    Id() = default;
+    Id(bool own = false)
+    : mOwn{true}
+    {}
     template <typename Value>
     bool match(Value const& value) const
     {
-        if (mHasValue)
+        if (*mValue)
         {
-            return mValue == value;
+            return **mValue == value;
         }
-        mHasValue = true;
-        mValue = value;
+        // Debug<decltype(mValue)> x;
+        if (mOwn)
+        {
+            *mValue = std::make_shared<Value>(value);
+        }
+        else
+        {
+            (*mValue).reset(&value, [](auto&&){});
+        }
         return true;
     }
     void reset() const
     {
-        mHasValue = false;
+        (*mValue).reset();
     }
-    Type& value() const
+    Type const& value() const
     {
-        assert(mHasValue);
-        return mValue;
+        return **mValue;
     }
 private:
-    mutable Type mValue;
-    mutable bool mHasValue{false};
+    bool const mOwn;
+    mutable std::shared_ptr<std::shared_ptr<Type const>> mValue = std::make_shared<std::shared_ptr<Type const>>();
 };
 
 template <typename Type>
@@ -348,7 +368,7 @@ public:
         return mPatterns;
     }
 private:
-    std::tuple<Patterns const&...> mPatterns;
+    std::tuple<Patterns...> mPatterns;
 };
 
 template <typename... Patterns>
@@ -370,7 +390,14 @@ public:
                 return std::apply(
                     [&patterns...](Values const&... values)
                     {
-                        return (::match(patterns, values) && ...);
+                        if constexpr(sizeof...(patterns) != sizeof...(values))
+                        {
+                            return false;
+                        }
+                        else
+                        {
+                            return (::match(patterns, values) && ...);
+                        }
                     },
                     valueTuple);
             },

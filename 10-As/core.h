@@ -13,6 +13,22 @@ public:
 };
 
 template <typename Value>
+class ValueType
+{
+public:
+    using ValueT = Value const;
+};
+
+// TODO, use a special type for match generate tuples.
+// So that we do not copy any values.
+template <typename... Values>
+class ValueType<std::tuple<Values...>>
+{
+public:
+    using ValueT = std::tuple<Values...> const;
+};
+
+template <typename Value>
 class MatchHelper
 {
 public:
@@ -38,7 +54,9 @@ public:
         return result;
     }
 private:
-    Value const& mValue;
+    // const
+    typename ValueType<Value>::ValueT mValue;
+    // Value const mValue;
 };
 
 template <typename Value>
@@ -46,9 +64,6 @@ MatchHelper<Value> match(Value const& value)
 {
     return MatchHelper<Value>{value};
 }
-
-template <typename... T>
-class Debug;
 
 template <typename First, typename... Values>
 auto match(First const& first, Values const&... values)

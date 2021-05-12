@@ -1,16 +1,6 @@
 #include "core.h"
 #include "patterns.h"
 
-bool func1(int32_t v)
-{
-    return true;
-}
-
-int64_t func2(int32_t v)
-{
-    return 12;
-}
-
 template <typename V, typename U, typename Func>
 void testMatch(V const &input, U const &expected, Func matchFunc)
 {
@@ -22,7 +12,21 @@ void testMatch(V const &input, U const &expected, Func matchFunc)
     else
     {
         printf("Failed!\n");
+        if constexpr(std::is_same_v<U, int>)
+        {
+            std::cout << x << " != " << expected << std::endl;
+        }
     }
+}
+
+bool func1(int32_t v)
+{
+    return true;
+}
+
+int64_t func2(int32_t v)
+{
+    return 12;
 }
 
 int32_t test1()
@@ -30,7 +34,7 @@ int32_t test1()
     auto const matchFunc = [](int32_t input)
     {
         Id<int> ii;
-        ii.match(5);
+        // ii.match(5);
         return match(input)(
             pattern(1) = func1,
             pattern(2) = func2,
@@ -40,7 +44,7 @@ int32_t test1()
             pattern(_ < 10) = [](int32_t){ return -10; },
             pattern(and_(_ < 17, _ > 15)) = [](int32_t){ return 16; },
             pattern(app([](int32_t x){return x*x; }, when([](auto&& x){return x > 1000; }))) = [](int32_t){ return 1000; },
-            pattern(app([](int32_t x){return x*x; }, ii)) = [&ii](int32_t){ return ii.value(); },
+            pattern(app([](int32_t x){return x*x; }, ii)) = [&ii](int32_t){ return ii.value() + 0; },
             pattern(ii) = [&ii](int32_t){ return ii.value() + 1; },
             pattern(_) = [](int32_t){ return 111; }
         );
@@ -66,12 +70,15 @@ int32_t test2()
         auto [op, lhs, rhs] = input;
         return match(op, lhs, rhs)(
         // return match(input)(
+            pattern(ds('/', 1, 1)) = [](auto&&){ return 1; },
             pattern(ds('/', 0, _)) = [](auto&&){ return 0; },
+            pattern(ds('/', _)) = [](auto&&){ return 0; },
             pattern(ds('*', i, j)) = [&i, &j](auto&&){ return i.value() * j.value(); },
             pattern(ds('+', i, j)) = [&i, &j](auto&&){ return i.value() + j.value(); },
             pattern(_) = [&i, &j](auto&&){ return -1; }
         );
     };
+    testMatch(std::make_tuple('/', 1, 1), 1, matchFunc);
     testMatch(std::make_tuple('+', 2, 1), 3, matchFunc);
     testMatch(std::make_tuple('/', 0, 1), 0, matchFunc);
     testMatch(std::make_tuple('*', 2, 1), 2, matchFunc);
@@ -84,23 +91,39 @@ struct A
     int a;
     int b;
 };
-
+bool operator == (A const lhs, A const rhs)
+{
+    return lhs.a == rhs.a && lhs.b == rhs.b;
+}
 int32_t test3()
 {
     auto const matchFunc = [](A const& input)
     {
         Id<int> i;
         Id<int> j;
+        Id<A> a;
         // compose patterns for destructuring struct A.
-        auto const dsA = and_(app(&A::a, i), app(&A::b, 1));
+        // auto const dsA = [&i]()
+        // // auto const dsA = [](Id<int>& x)
+        // {
+        //     return and_(app(&A::a, i), app(&A::b, 1));
+        // };
+        // Debug<decltype(dsA(i))> xx;
+        // auto x = and_(app(&A::b, 1), a); // and(app, )出错
+        auto x = [&]
+        {
+            // return and_(app(&A::b, 1));
+            return and_(app(&A::b, 1), app(&A::a, i));
+        };
         return match(input)(
-            // pattern(and_(app(&A::a, i), app(&A::b, j))) = [&i, &j](auto&&){ return i.value() + j.value(); },
-            pattern(dsA) = [&i](auto&&){ return i.value(); },
+            pattern(and_(app(&A::a, i), app(&A::b, 1))) = [&i](auto&&){ return i.value(); },
+            // pattern(dsA()) = [&i](auto&&){ return i.value(); },
             pattern(_) = [](auto&&){ return -1; }
         );
     };
-    testMatch(A{2, 1}, 2, matchFunc);
-    testMatch(A{2, 2}, -1, matchFunc);
+    testMatch(A{3, 1}, 3, matchFunc);
+    auto a = A{2, 1};
+    testMatch(a, 2, matchFunc);
     return 0;
 }
 
@@ -155,13 +178,13 @@ int32_t test4()
             return false;
         });
         return match(input)(
-            pattern(castWhen) = [&one](auto&&){ return 1; }
+            pattern(castWhen) = [&one](auto&&){ return 1; },
+            pattern(_) = [](auto&&){return 2;}
         );
     };
     testMatch(One{}, 1, matchFunc);
     return 0;
 }
-
 
 int main()
 {
