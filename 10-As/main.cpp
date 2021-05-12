@@ -173,6 +173,7 @@ int32_t test4()
         {
             if (k.kind() == Kind::kONE)
             {
+                assert(false);
                 return match(one, static_cast<One const&>(k));
             }
             return false;
