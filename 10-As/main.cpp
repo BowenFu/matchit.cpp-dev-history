@@ -157,33 +157,57 @@ public:
     }
 };
 
+class Two : public K
+{
+public:
+    Kind kind() const override
+    {
+        return Kind::kTWO;
+    }
+    int get() const
+    {
+        return 2;
+    }
+};
+
 bool operator==(One const&, One const&)
 {
     return true;
 }
 
+bool operator==(Two const&, Two const&)
+{
+    return true;
+}
+
+template <Kind k>
+auto const kind = app(&K::kind, k);
+
+template <typename T>
+auto const cast = [](K const& input){
+    return static_cast<T const&>(input);
+}; 
+
+template <typename T, Kind k>
+auto const as = [](Id<T> const& id)
+{
+    return and_(kind<k>, app(cast<T>, id));
+};
+
 int32_t test4()
 {
     auto const matchFunc = [](K const& input)
     {
-        Id<int> i;
-        Id<int> j;
         Id<One> one;
-        auto const castWhen = when([&one](K const& k)
-        {
-            // std::cout << static_cast<int>(k.kind()) << std::endl;
-            if (k.kind() == Kind::kONE)
-            {
-                return match(one, static_cast<One const&>(k));
-            }
-            return false;
-        });
+        Id<Two> two;
         return match(input)(
-            pattern(castWhen) = [&one](auto&&){ return 1; },
-            pattern(_) = [](auto&&){return 2;}
+            pattern(as<One, Kind::kONE>(one)) = [&one](auto&&){ return one.value().get(); },
+            pattern(kind<Kind::kTWO>) = [](auto&&){ return 2; },
+            pattern(_) = [](auto&&){return 3;}
         );
     };
     testMatch(One{}, 1, matchFunc);
+    testMatch(Two{}, 2, matchFunc);
     return 0;
 }
 
