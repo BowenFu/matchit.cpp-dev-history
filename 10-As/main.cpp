@@ -211,11 +211,29 @@ int32_t test4()
     return 0;
 }
 
+int32_t test5()
+{
+    auto const matchFunc = [](std::pair<int32_t, int32_t> ij)
+    {
+        return match(ij.first%3, ij.second%5)(
+            pattern(0, 0) = [](auto&&){return 1;},
+            pattern(0, _ > 2) = [](auto&&){return 2;},
+            pattern(_) = [](auto&&){return 3;}
+        );
+    };
+    testMatch(std::make_pair(3, 5), 1, matchFunc);
+    testMatch(std::make_pair(3, 4), 2, matchFunc);
+    testMatch(std::make_pair(4, 4), 3, matchFunc);
+    return 0;
+}
+
+
 int main()
 {
     test1();
     test2();
     test3();
     test4();
+    test5();
     return 0;
 }

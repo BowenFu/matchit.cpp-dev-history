@@ -42,7 +42,7 @@ public:
         RetType result{};
         auto const func = [this, &result](auto const& pattern) -> bool
         {
-            if (pattern.match(mValue))
+            if (pattern.matchValue(mValue))
             {
                 result = pattern.execute(mValue);
                 return true;
