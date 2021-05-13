@@ -171,7 +171,7 @@ int32_t test4()
         Id<One> one;
         auto const castWhen = when([&one](K const& k)
         {
-            std::cout << static_cast<int>(k.kind()) << std::endl;
+            // std::cout << static_cast<int>(k.kind()) << std::endl;
             if (k.kind() == Kind::kONE)
             {
                 return match(one, static_cast<One const&>(k));
