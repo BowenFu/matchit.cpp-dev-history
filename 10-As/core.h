@@ -12,7 +12,7 @@ public:
     using RetType = std::common_type_t<typename PatternPair::template RetType<Value>...>;
 };
 
-template <typename Value>
+template <typename Value, bool byRef>
 class ValueType
 {
 public:
@@ -21,14 +21,14 @@ public:
 
 // TODO, use a special type for match generate tuples.
 // So that we do not copy any values.
-template <typename... Values>
-class ValueType<std::tuple<Values...>>
+template <typename Value>
+class ValueType<Value, true>
 {
 public:
-    using ValueT = std::tuple<Values...> const;
+    using ValueT = Value const&;
 };
 
-template <typename Value>
+template <typename Value, bool byRef>
 class MatchHelper
 {
 public:
@@ -54,21 +54,19 @@ public:
         return result;
     }
 private:
-    // const
-    typename ValueType<Value>::ValueT mValue;
-    // Value const mValue;
+    typename ValueType<Value, byRef>::ValueT mValue;
 };
 
 template <typename Value>
-MatchHelper<Value> match(Value const& value)
+auto match(Value const& value)
 {
-    return MatchHelper<Value>{value};
+    return MatchHelper<Value, true>{value};
 }
 
 template <typename First, typename... Values>
 auto match(First const& first, Values const&... values)
 {
-    std::tuple<First, Values...> const x = std::make_tuple(first, values...);
-    return MatchHelper<decltype(x)>{x};
+    auto const x = std::forward_as_tuple(first, values...);
+    return MatchHelper<decltype(x), false>{x};
 }
 #endif // _CORE_H_

@@ -72,7 +72,7 @@ int32_t test2()
         // return match(input)(
             pattern(ds('/', 1, 1)) = [](auto&&){ return 1; },
             pattern(ds('/', 0, _)) = [](auto&&){ return 0; },
-            pattern(ds('/', _)) = [](auto&&){ return 0; },
+            // pattern(ds('/', _)) = [](auto&&){ return 0; },
             pattern(ds('*', i, j)) = [&i, &j](auto&&){ return i.value() * j.value(); },
             pattern(ds('+', i, j)) = [&i, &j](auto&&){ return i.value() + j.value(); },
             pattern(_) = [&i, &j](auto&&){ return -1; }
@@ -147,7 +147,7 @@ public:
 class One : public K
 {
 public:
-    Kind kind() const final
+    Kind kind() const override
     {
         return Kind::kONE;
     }
@@ -171,9 +171,9 @@ int32_t test4()
         Id<One> one;
         auto const castWhen = when([&one](K const& k)
         {
+            std::cout << static_cast<int>(k.kind()) << std::endl;
             if (k.kind() == Kind::kONE)
             {
-                assert(false);
                 return match(one, static_cast<One const&>(k));
             }
             return false;
