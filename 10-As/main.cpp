@@ -312,6 +312,39 @@ void test9()
     testMatch(&a, true, optional);
 }
 
+struct Shape { virtual ~Shape() = default; };
+struct Circle : Shape {};
+struct Square : Shape {};
+
+auto const some = [](auto const& id)
+{
+    auto deref = [](auto&& x) { return *x; };
+    return and_(app(cast<bool>, true), app(deref, id));
+};
+auto const none = app(cast<bool>, false);
+
+template <typename T>
+auto const dynAs = [](auto&& id)
+{
+    auto dynCast = [](auto&& p){return dynamic_cast<T const*>(&p); };
+    return app(dynCast, some(id));
+};
+
+void test10()
+{
+    auto const dynCast = [](auto const& i)
+    {
+        return match(i)(
+            pattern(some(dynAs<Circle>(_))) = []{return std::string("Circle");},
+            pattern(some(dynAs<Square>(_))) = []{return std::string("Square");},
+            pattern(none) = []{assert(false); return std::string("None");}
+        );
+    };
+
+    testMatch(std::make_unique<Square>(), "Sqaure", dynCast);
+    testMatch(std::make_unique<Circle>(), "Circle", dynCast);
+    testMatch(std::unique_ptr<Circle>(), "None", dynCast);
+}
 
 
 int main()
