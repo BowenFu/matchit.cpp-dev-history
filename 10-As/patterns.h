@@ -390,8 +390,8 @@ template <typename... Patterns>
 class PatternTraits<Ds<Patterns...>>
 {
 public:
-    template <typename... Values>
-    static bool matchPattern(Ds<Patterns...> const& dsPat, std::tuple<Values...> const& valueTuple)
+    template <template <typename... Values> class C, typename... Values>
+    static bool matchPattern(Ds<Patterns...> const& dsPat, C<Values...> const& valueTuple)
     {
         return std::apply(
             [&valueTuple](Patterns const&... patterns)

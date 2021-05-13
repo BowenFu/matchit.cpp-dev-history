@@ -1,11 +1,11 @@
 #include "core.h"
 #include "patterns.h"
 
-template <typename V, typename U, typename Func>
-void testMatch(V const &input, U const &expected, Func matchFunc)
+
+template <typename V, typename U>
+void compare(V const &result, U const &expected)
 {
-    auto const x = matchFunc(input);
-    if (x == expected)
+    if (result == expected)
     {
         printf("Passed!\n");
     }
@@ -14,9 +14,16 @@ void testMatch(V const &input, U const &expected, Func matchFunc)
         printf("Failed!\n");
         if constexpr(std::is_same_v<U, int>)
         {
-            std::cout << x << " != " << expected << std::endl;
+            std::cout << result << " != " << expected << std::endl;
         }
     }
+}
+
+template <typename V, typename U, typename Func>
+void testMatch(V const &input, U const &expected, Func matchFunc)
+{
+    auto const x = matchFunc(input);
+    compare(x, expected);
 }
 
 bool func1()
@@ -224,17 +231,60 @@ void test5()
     testMatch(std::make_pair(4, 1), 4, matchFunc);
 }
 
+int32_t fib(int32_t n)
+{
+    assert(n>0);
+    return match(n)
+    (
+        pattern(1) = []{return 1;},
+        pattern(2) = []{return 1;},
+        pattern(_) = [n]{return fib(n-1) + fib(n-2);}
+    );
+}
+
 void test6()
 {
-    auto const fib = [](int32_t n)
-    {
-        assert(n>0);
-        // return match(n)
-        // (
-        //     // pattern(1) = []
-        // );
-    };
+    compare(fib(1), 1);
+    compare(fib(2), 1);
+    compare(fib(3), 2);
+    compare(fib(4), 3);
+    compare(fib(5), 5);
 }
+
+void test7()
+{
+    auto const matchFunc = [](std::pair<int32_t, int32_t> ij)
+    {
+        Id<std::tuple<int32_t const&, int32_t const&>> id;
+        // delegate at to and_
+        auto const at = [](auto&& id, auto&& pattern)
+        {
+            return and_(id, pattern);
+        };
+        return match(ij.first%3, ij.second%5)(
+            pattern(0, _ > 2) = []{return 2;},
+            pattern(ds(1, _ > 2)) = []{return 3;},
+            pattern(at(id, ds(_, 2))) = [&id]{assert(std::get<1>(id.value()) == 2); return 4;},
+            pattern(_) = []{return 5;}
+        );
+    };
+    testMatch(std::make_pair(4, 2), 4, matchFunc);
+}
+
+void test8()
+{
+    auto const equal = [](std::pair<int32_t, std::pair<int32_t, int32_t>> ijk)
+    {
+        Id<int32_t> x;
+        return match(ijk)(
+            pattern(ds(x, ds(_, x))) = []{return true;},
+            pattern(_) = []{return false;}
+        );
+    };
+    testMatch(std::make_pair(2, std::make_pair(1, 2)), true, equal);
+    testMatch(std::make_pair(2, std::make_pair(1, 3)), false, equal);
+}
+
 
 int main()
 {
@@ -243,5 +293,8 @@ int main()
     test3();
     test4();
     test5();
+    test6();
+    test7();
+    test8();
     return 0;
 }
