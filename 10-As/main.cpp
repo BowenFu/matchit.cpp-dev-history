@@ -188,7 +188,7 @@ template <Kind k>
 auto const kind = app(&K::kind, k);
 
 template <typename T>
-auto const cast = [](K const& input){
+auto const cast = [](auto const& input){
     return static_cast<T const&>(input);
 }; 
 
@@ -285,6 +285,34 @@ void test8()
     testMatch(std::make_pair(2, std::make_pair(1, 3)), false, equal);
 }
 
+// optional
+void test9()
+{
+    auto const optional = [](auto const& i)
+    {
+        Id<int32_t> x;
+        auto const some = [](auto const& id)
+        {
+            auto deref = [](auto&& x) { return *x; };
+            return and_(app(cast<bool>, true), app(deref, id));
+        };
+        auto const none = app(cast<bool>, false);
+        return match(i)(
+            pattern(some(x)) = []{return true;},
+            pattern(none) = []{return false;}
+        );
+    };
+    testMatch(std::make_unique<int32_t>(2), true, optional);
+    testMatch(std::unique_ptr<int32_t>{}, false, optional);
+    testMatch(std::make_optional<int32_t>(2), true, optional);
+    testMatch(std::optional<int32_t>{}, false, optional);
+    int32_t* p = nullptr;
+    testMatch(p, false, optional);
+    int a = 3;
+    testMatch(&a, true, optional);
+}
+
+
 
 int main()
 {
@@ -296,5 +324,6 @@ int main()
     test6();
     test7();
     test8();
+    test9();
     return 0;
 }
