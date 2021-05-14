@@ -390,14 +390,14 @@ template <typename... Patterns>
 class PatternTraits<Ds<Patterns...>>
 {
 public:
-    template <template <typename... Values> class C, typename... Values>
-    static bool matchPattern(Ds<Patterns...> const& dsPat, C<Values...> const& valueTuple)
+    template <typename Tuple, typename... Values>
+    static bool matchPattern(Ds<Patterns...> const& dsPat, Tuple const& valueTuple)
     {
         return std::apply(
             [&valueTuple](Patterns const&... patterns)
             {
                 return std::apply(
-                    [&patterns...](Values const&... values)
+                    [&patterns...](auto const&... values)
                     {
                         if constexpr(sizeof...(patterns) != sizeof...(values))
                         {

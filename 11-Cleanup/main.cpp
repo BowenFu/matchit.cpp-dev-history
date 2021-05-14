@@ -109,27 +109,17 @@ void test3()
         Id<int> j;
         Id<A> a;
         // compose patterns for destructuring struct A.
-        // auto const dsA = [&i]()
-        // // auto const dsA = [](Id<int>& x)
-        // {
-        //     return and_(app(&A::a, i), app(&A::b, 1));
-        // };
-        // Debug<decltype(dsA(i))> xx;
-        // auto x = and_(app(&A::b, 1), a); // and(app, )出错
-        auto x = [&]
+        auto const dsA = [](Id<int>& x)
         {
-            // return and_(app(&A::b, 1));
-            return and_(app(&A::b, 1), app(&A::a, i));
+            return and_(app(&A::a, x), app(&A::b, 1));
         };
         return match(input)(
-            pattern(and_(app(&A::a, i), app(&A::b, 1))) = [&i]{ return i.value(); },
-            // pattern(dsA()) = [&i]{ return i.value(); },
+            pattern(dsA(i)) = [&i]{ return i.value(); },
             pattern(_) = []{ return -1; }
         );
     };
     testMatch(A{3, 1}, 3, matchFunc);
-    auto a = A{2, 1};
-    testMatch(a, 2, matchFunc);
+    testMatch(A{2, 2}, -1, matchFunc);
 }
 
 enum class Kind
