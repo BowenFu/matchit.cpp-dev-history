@@ -83,7 +83,9 @@ match (state) {
 
 Quite similar to `Rust` style.
 
-But still it cannot work. There is no `:` operator in C++ (neither is =>). And all statements inside a block will be executed sequentially. 
+But still it cannot work. There is no `:` operator in C++ (neither is `=>`).
+We have operator `=` though. Other altenatives can be binary operators like `>=`, `>>=`, `<=`, `<<=`, `==`, `>>`, `<<`, `-=`, `+=`. Some may even go further to combine a dummy unary operator with a binary operator, such as `-->`, `--` + `>`.
+The operator `=` will be chosen here for its simplity.
 
 Then we can have
 
