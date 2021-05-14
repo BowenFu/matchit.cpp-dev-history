@@ -63,6 +63,11 @@ public:
     {
         return PatternPair<Pattern, Func>{mPattern, func};
     }
+    template <typename Func>
+    auto meet(Func const& func)
+    {
+        return PatternHelper<
+    }
 private:
     Pattern const mPattern;
 };
@@ -163,10 +168,10 @@ public:
 };
 
 template <typename Pred>
-class When
+class Meet
 {
 public:
-    explicit When(Pred const& pred)
+    explicit Meet(Pred const& pred)
         : mPred{pred}
         {}
     auto const& predicate() const
@@ -178,21 +183,21 @@ private:
 };
 
 template <typename Pred>
-auto when(Pred const& pred)
+auto meet(Pred const& pred)
 {
-    return When<Pred>{pred};
+    return Meet<Pred>{pred};
 }
 
 template <typename Pred>
-class PatternTraits<When<Pred>>
+class PatternTraits<Meet<Pred>>
 {
 public:
     template <typename Value>
-    static bool matchPatternImpl(Value const& value, When<Pred> const& whenPat)
+    static bool matchPatternImpl(Value const& value, Meet<Pred> const& meetPat)
     {
-        return whenPat.predicate()(value);
+        return meetPat.predicate()(value);
     }
-    static void resetId(When<Pred> const& whenPat)
+    static void resetId(Meet<Pred> const& meetPat)
     {
     }
 };
@@ -242,25 +247,25 @@ public:
 template <typename T>
 auto operator<(WildCard const&, T const& t)
 {
-    return when([t](auto&& p){ return p < t;});
+    return meet([t](auto&& p){ return p < t;});
 }
 
 template <typename T>
 auto operator<=(WildCard const&, T const& t)
 {
-    return when([t](auto&& p){return p <= t;});
+    return meet([t](auto&& p){return p <= t;});
 }
 
 template <typename T>
 auto operator>=(WildCard const&, T const& t)
 {
-    return when([t](auto&& p){return p >= t;});
+    return meet([t](auto&& p){return p >= t;});
 }
 
 template <typename T>
 auto operator>(WildCard const&, T const& t)
 {
-    return when([t](auto&& p){return p > t;});
+    return meet([t](auto&& p){return p > t;});
 }
 
 template <typename... Patterns>
