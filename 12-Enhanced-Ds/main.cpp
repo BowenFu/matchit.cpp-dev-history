@@ -2,6 +2,7 @@
 #include "patterns.h"
 #include <variant>
 #include <array>
+#include <any>
 
 
 template <typename V, typename U>
@@ -411,6 +412,30 @@ void test13()
     testMatch(A{2, 1}, 1, dsAgg);
 }
 
+template <typename T>
+auto const anyAs = [](auto&& id)
+{
+    auto anyCast = [](auto&& p){return std::any_cast<T>(std::addressof(p)); };
+    return app(anyCast, some(id));
+};
+
+void test14()
+{
+    auto const anyCast = [](auto const& i)
+    {
+        return match(i)(
+            pattern(anyAs<Square>(_)) = []{return std::string("Square");},
+            pattern(anyAs<Circle>(_)) = []{return std::string("Circle");}
+        );
+    };
+
+    std::any sc;
+    sc = Square{};
+    testMatch(sc, "Square", anyCast);
+    sc = Circle{};
+    testMatch(sc, "Circle", anyCast);
+}
+
 int main()
 {
     test1();
@@ -426,5 +451,6 @@ int main()
     test11();
     test12();
     test13();
+    test14();
     return 0;
 }
