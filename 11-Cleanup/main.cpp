@@ -1,6 +1,7 @@
 #include "core.h"
 #include "patterns.h"
 #include <variant>
+#include <array>
 
 
 template <typename V, typename U>
@@ -361,6 +362,21 @@ void test11()
     testMatch(sc, "Circle", getIf);
 }
 
+void test12()
+{
+    auto const dsArray = [](auto const& v)
+    {
+        Id<int> i;
+        return match(v)(
+            pattern(ds(_, i)) = [&i]{return *i;},
+            pattern(ds(_, _, i)) = [&i]{return *i;}
+        );
+    };
+
+    testMatch(std::array<int, 2>{1, 2}, 2, dsArray);
+    testMatch(std::array<int, 3>{1, 2, 3}, 3, dsArray);
+}
+
 int main()
 {
     test1();
@@ -374,5 +390,6 @@ int main()
     test9();
     test10();
     test11();
+    test12();
     return 0;
 }
