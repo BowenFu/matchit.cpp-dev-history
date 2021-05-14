@@ -14,9 +14,9 @@ template <typename Pattern>
 class PatternTraits;
 
 template <typename Pattern, typename Value>
-bool matchPattern(Pattern const& pattern, Value const& value)
+bool match(Pattern const& pattern, Value const& value)
 {
-    return PatternTraits<Pattern>::matchPattern(pattern, value);
+    return PatternTraits<Pattern>::match(pattern, value);
 }
 
 template <typename Pattern>
@@ -29,7 +29,8 @@ template <typename Pattern, typename Func>
 class PatternPair
 {
 public:
-    using RetType = std::invoke_result_t<Func>;
+    template <typename Value>
+    using RetType = std::invoke_result_t<Func, Value>;
 
     PatternPair(Pattern const& pattern, Func const& func)
         : mPattern{pattern}
@@ -37,14 +38,15 @@ public:
     {
     }
     template <typename Value>
-    bool matchValue(Value const& value) const
+    bool match(Value const& value) const
     {
         resetId(mPattern);
-        return ::matchPattern(mPattern, value);
+        return ::match(mPattern, value);
     }
-    auto execute() const
+    template <typename Value>
+    auto execute(Value const& value) const
     {
-        return mHandler();
+        return mHandler(value);
     }
 private:
     Pattern const& mPattern;
@@ -64,24 +66,13 @@ public:
         return PatternPair<Pattern, Func>{mPattern, func};
     }
 private:
-    Pattern const mPattern;
+    Pattern const& mPattern;
 };
 
 template <typename Pattern>
 PatternHelper<Pattern> pattern(Pattern const& p)
 {
     return PatternHelper<Pattern>{p};
-}
-
-template <typename... Patterns>
-class Ds;
-template <typename... Patterns>
-auto ds(Patterns const&... patterns) -> Ds<Patterns...>;
-
-template <typename First, typename... Patterns>
-auto pattern(First const& f, Patterns const&... ps)
-{
-    return PatternHelper<Ds<First, Patterns...>>{ds(f, ps...)};
 }
 
 class WildCard{};
@@ -92,7 +83,7 @@ class PatternTraits
 {
 public:
     template <typename Value>
-    static bool matchPattern(Pattern const& pattern, Value const& value)
+    static bool match(Pattern const& pattern, Value const& value)
     {
         return pattern == value;
     }
@@ -107,7 +98,7 @@ class PatternTraits<WildCard>
     using Pattern = WildCard;
 public:
     template <typename Value>
-    static bool matchPattern(Pattern const&, Value const&)
+    static bool match(Pattern const&, Value const&)
     {
         return true;
     }
@@ -142,12 +133,12 @@ class PatternTraits<Or<Patterns...>>
 {
 public:
     template <typename Value>
-    static bool matchPattern(Or<Patterns...> const& orPat, Value const& value)
+    static bool match(Or<Patterns...> const& orPat, Value const& value)
     {
         return std::apply(
             [&value](Patterns const&... patterns)
             {
-                return (::matchPattern(patterns, value) || ...);
+                return (::match(patterns, value) || ...);
             },
             orPat.patterns());
     }
@@ -188,7 +179,7 @@ class PatternTraits<When<Pred>>
 {
 public:
     template <typename Value>
-    static bool matchPattern(When<Pred> const& whenPat, Value const& value)
+    static bool match(When<Pred> const& whenPat, Value const& value)
     {
         return whenPat.predicate()(value);
     }
@@ -229,9 +220,9 @@ class PatternTraits<App<Unary, Pattern>>
 {
 public:
     template <typename Value>
-    static bool matchPattern(App<Unary, Pattern> const& appPat, Value const& value)
+    static bool match(App<Unary, Pattern> const& appPat, Value const& value)
     {
-        return ::matchPattern(appPat.pattern(), std::invoke(appPat.unary(), value));
+        return ::match(appPat.pattern(), std::invoke(appPat.unary(), value));
     }
     static void resetId(App<Unary, Pattern> const& appPat)
     {
@@ -289,12 +280,12 @@ class PatternTraits<And<Patterns...>>
 {
 public:
     template <typename Value>
-    static bool matchPattern(And<Patterns...> const& andPat, Value const& value)
+    static bool match(And<Patterns...> const& andPat, Value const& value)
     {
         return std::apply(
             [&value](Patterns const&... patterns)
             {
-                return (::matchPattern(patterns, value) && ...);
+                return (::match(patterns, value) && ...);
             },
             andPat.patterns());
     }
@@ -320,7 +311,7 @@ public:
     : mOwn{true}
     {}
     template <typename Value>
-    bool matchPattern(Value const& value) const
+    bool match(Value const& value) const
     {
         if (*mValue)
         {
@@ -355,9 +346,9 @@ class PatternTraits<Id<Type>>
 {
 public:
     template <typename Value>
-    static bool matchPattern(Id<Type> const& idPat, Value const& value)
+    static bool match(Id<Type> const& idPat, Value const& value)
     {
-        return idPat.matchPattern(value);
+        return idPat.match(value);
     }
     static void resetId(Id<Type> const& idPat)
     {
@@ -390,8 +381,8 @@ template <typename... Patterns>
 class PatternTraits<Ds<Patterns...>>
 {
 public:
-    template <template <typename... Values> class C, typename... Values>
-    static bool matchPattern(Ds<Patterns...> const& dsPat, C<Values...> const& valueTuple)
+    template <typename... Values>
+    static bool match(Ds<Patterns...> const& dsPat, std::tuple<Values...> const& valueTuple)
     {
         return std::apply(
             [&valueTuple](Patterns const&... patterns)
@@ -406,7 +397,7 @@ public:
                         }
                         else
                         {
-                            return (::matchPattern(patterns, values) && ...);
+                            return (::match(patterns, values) && ...);
                         }
                     },
                     valueTuple);
