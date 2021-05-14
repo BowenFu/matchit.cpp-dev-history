@@ -49,11 +49,11 @@ void test1()
             pattern(1) = func1,
             pattern(2) = func2,
             pattern(or_(56, 59)) = func2,
-            // pattern(meet([](auto&& x){return x < 0; })) = [](int32_t){ return -1; },
+            // pattern(when([](auto&& x){return x < 0; })) = [](int32_t){ return -1; },
             pattern(_ < 0) = []{ return -1; },
             pattern(_ < 10) = []{ return -10; },
             pattern(and_(_ < 17, _ > 15)) = []{ return 16; },
-            pattern(app([](int32_t x){return x*x; }, meet([](auto&& x){return x > 1000; }))) = []{ return 1000; },
+            pattern(app([](int32_t x){return x*x; }, when([](auto&& x){return x > 1000; }))) = []{ return 1000; },
             pattern(app([](int32_t x){return x*x; }, ii)) = [&ii]{ return ii.value() + 0; },
             pattern(ii) = [&ii]{ return ii.value() + 1; },
             pattern(_) = []{ return 111; }
@@ -63,9 +63,9 @@ void test1()
     testMatch(2, 12, matchFunc);
     testMatch(11, 121, matchFunc); // Id matched.
     testMatch(59, 12, matchFunc); // or_ matched.
-    testMatch(-5, -1, matchFunc); // meet matched.
+    testMatch(-5, -1, matchFunc); // when matched.
     testMatch(10, 100, matchFunc); // app matched.
-    testMatch(100, 1000, matchFunc); // app > meet matched.
+    testMatch(100, 1000, matchFunc); // app > when matched.
     testMatch(5, -10, matchFunc); // _ < 10 matched.
     testMatch(16, 16, matchFunc); // and_ matched.
 }
