@@ -1,5 +1,6 @@
 #include "core.h"
 #include "patterns.h"
+#include <variant>
 
 
 template <typename V, typename U>
@@ -337,15 +338,38 @@ void test10()
         return match(i)(
             pattern(some(dynAs<Circle>(_))) = []{return std::string("Circle");},
             pattern(some(dynAs<Square>(_))) = []{return std::string("Square");},
-            pattern(none) = []{assert(false); return std::string("None");}
+            pattern(none) = []{return std::string("None");}
         );
     };
 
-    testMatch(std::make_unique<Square>(), "Sqaure", dynCast);
+    testMatch(std::make_unique<Square>(), "Square", dynCast);
     testMatch(std::make_unique<Circle>(), "Circle", dynCast);
     testMatch(std::unique_ptr<Circle>(), "None", dynCast);
 }
 
+template <typename T>
+auto const getAs = [](auto&& id)
+{
+    auto getIf = [](auto&& p){return std::get_if<T>(std::addressof(p)); };
+    return app(getIf, some(id));
+};
+
+void test11()
+{
+    auto const getIf = [](auto const& i)
+    {
+        return match(i)(
+            pattern(getAs<Square>(_)) = []{return std::string("Square");},
+            pattern(getAs<Circle>(_)) = []{return std::string("Circle");}
+        );
+    };
+
+    std::variant<Square, Circle> sc;
+    sc = Square{};
+    testMatch(sc, "Square", getIf);
+    sc = Circle{};
+    testMatch(sc, "Circle", getIf);
+}
 
 int main()
 {
@@ -358,5 +382,7 @@ int main()
     test7();
     test8();
     test9();
+    test10();
+    test11();
     return 0;
 }
