@@ -278,18 +278,19 @@ void test8()
     testMatch(std::make_pair(2, std::make_pair(1, 3)), false, equal);
 }
 
+auto const some = [](auto const& id)
+{
+    auto deref = [](auto&& x) { return *x; };
+    return and_(app(cast<bool>, true), app(deref, id));
+};
+auto const none = app(cast<bool>, false);
+
 // optional
 void test9()
 {
     auto const optional = [](auto const& i)
     {
         Id<int32_t> x;
-        auto const some = [](auto const& id)
-        {
-            auto deref = [](auto&& x) { return *x; };
-            return and_(app(cast<bool>, true), app(deref, id));
-        };
-        auto const none = app(cast<bool>, false);
         return match(i)(
             pattern(some(x)) = []{return true;},
             pattern(none) = []{return false;}
@@ -308,13 +309,6 @@ void test9()
 struct Shape { virtual ~Shape() = default; };
 struct Circle : Shape {};
 struct Square : Shape {};
-
-auto const some = [](auto const& id)
-{
-    auto deref = [](auto&& x) { return *x; };
-    return and_(app(cast<bool>, true), app(deref, id));
-};
-auto const none = app(cast<bool>, false);
 
 template <typename T>
 auto const dynAs = [](auto&& id)
@@ -434,7 +428,38 @@ void test14()
     testMatch(sc, "Square", anyCast);
     sc = Circle{};
     testMatch(sc, "Circle", anyCast);
+
+    compare(matchPattern(sc, anyAs<Circle>(_)), true);
+    compare(matchPattern(sc, anyAs<Square>(_)), false);
+    // one would write if let like
+    // if (matchPattern(value, pattern))
+    // {
+    //     ...
+    // }
 }
+
+void test15()
+{
+    auto const optional = [](auto const& i)
+    {
+        Id<char> c;
+        return match(i)(
+            pattern(none) = []{return 1;},
+            pattern(some(none)) = []{return 2;},
+            pattern(some(some(c))) = [&c]{return *c;}
+        );
+    };
+    char const * * x = nullptr;
+    char const * y_ = nullptr;
+    char const * * y = &y_;
+    char const * z_ = "x";
+    char const * * z = &z_;
+
+    testMatch(x, 1, optional);
+    testMatch(y, 2, optional);
+    testMatch(z, 'x', optional);
+}
+
 
 int main()
 {
@@ -452,5 +477,6 @@ int main()
     test12();
     test13();
     test14();
+    test15();
     return 0;
 }

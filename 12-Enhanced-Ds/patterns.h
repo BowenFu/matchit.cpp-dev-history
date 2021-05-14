@@ -13,10 +13,10 @@
 template <typename Pattern>
 class PatternTraits;
 
-template <typename Pattern, typename Value>
-bool matchPattern(Pattern const& pattern, Value const& value)
+template <typename Value, typename Pattern>
+bool matchPattern(Value const& value, Pattern const& pattern)
 {
-    return PatternTraits<Pattern>::matchPattern(pattern, value);
+    return PatternTraits<Pattern>::matchPatternImpl(value, pattern);
 }
 
 template <typename Pattern>
@@ -40,7 +40,7 @@ public:
     bool matchValue(Value const& value) const
     {
         resetId(mPattern);
-        return ::matchPattern(mPattern, value);
+        return ::matchPattern(value, mPattern);
     }
     auto execute() const
     {
@@ -92,7 +92,7 @@ class PatternTraits
 {
 public:
     template <typename Value>
-    static bool matchPattern(Pattern const& pattern, Value const& value)
+    static bool matchPatternImpl(Value const& value, Pattern const& pattern)
     {
         return pattern == value;
     }
@@ -107,7 +107,7 @@ class PatternTraits<WildCard>
     using Pattern = WildCard;
 public:
     template <typename Value>
-    static bool matchPattern(Pattern const&, Value const&)
+    static bool matchPatternImpl(Value const&, Pattern const&)
     {
         return true;
     }
@@ -142,12 +142,12 @@ class PatternTraits<Or<Patterns...>>
 {
 public:
     template <typename Value>
-    static bool matchPattern(Or<Patterns...> const& orPat, Value const& value)
+    static bool matchPatternImpl(Value const& value, Or<Patterns...> const& orPat)
     {
         return std::apply(
             [&value](Patterns const&... patterns)
             {
-                return (::matchPattern(patterns, value) || ...);
+                return (::matchPattern(value, patterns) || ...);
             },
             orPat.patterns());
     }
@@ -188,7 +188,7 @@ class PatternTraits<When<Pred>>
 {
 public:
     template <typename Value>
-    static bool matchPattern(When<Pred> const& whenPat, Value const& value)
+    static bool matchPatternImpl(Value const& value, When<Pred> const& whenPat)
     {
         return whenPat.predicate()(value);
     }
@@ -229,9 +229,9 @@ class PatternTraits<App<Unary, Pattern>>
 {
 public:
     template <typename Value>
-    static bool matchPattern(App<Unary, Pattern> const& appPat, Value const& value)
+    static bool matchPatternImpl(Value const& value, App<Unary, Pattern> const& appPat)
     {
-        return ::matchPattern(appPat.pattern(), std::invoke(appPat.unary(), value));
+        return ::matchPattern(std::invoke(appPat.unary(), value), appPat.pattern());
     }
     static void resetId(App<Unary, Pattern> const& appPat)
     {
@@ -289,12 +289,12 @@ class PatternTraits<And<Patterns...>>
 {
 public:
     template <typename Value>
-    static bool matchPattern(And<Patterns...> const& andPat, Value const& value)
+    static bool matchPatternImpl(Value const& value, And<Patterns...> const& andPat)
     {
         return std::apply(
             [&value](Patterns const&... patterns)
             {
-                return (::matchPattern(patterns, value) && ...);
+                return (::matchPattern(value, patterns) && ...);
             },
             andPat.patterns());
     }
@@ -320,7 +320,7 @@ public:
     : mOwn{true}
     {}
     template <typename Value>
-    bool matchPattern(Value const& value) const
+    bool matchValue(Value const& value) const
     {
         if (*mValue)
         {
@@ -359,9 +359,9 @@ class PatternTraits<Id<Type>>
 {
 public:
     template <typename Value>
-    static bool matchPattern(Id<Type> const& idPat, Value const& value)
+    static bool matchPatternImpl(Value const& value, Id<Type> const& idPat)
     {
-        return idPat.matchPattern(value);
+        return idPat.matchValue(value);
     }
     static void resetId(Id<Type> const& idPat)
     {
@@ -400,6 +400,7 @@ namespace impl
         {
             // This implementation is valid since C++20 (via P1065R2)
             // In C++17, a constexpr counterpart of std::invoke is actually needed here
+            using std::get;
             return std::invoke(std::forward<F>(f), get<I>(std::forward<Tuple>(t))...);
         }
     } // namespace detail
@@ -418,7 +419,7 @@ class PatternTraits<Ds<Patterns...>>
 {
 public:
     template <typename Tuple, typename... Values>
-    static bool matchPattern(Ds<Patterns...> const& dsPat, Tuple const& valueTuple)
+    static bool matchPatternImpl(Tuple const& valueTuple, Ds<Patterns...> const& dsPat)
     {
         return std::apply(
             [&valueTuple](Patterns const&... patterns)
@@ -432,7 +433,7 @@ public:
                         }
                         else
                         {
-                            return (::matchPattern(patterns, values) && ...);
+                            return (::matchPattern(values, patterns) && ...);
                         }
                     },
                     valueTuple);

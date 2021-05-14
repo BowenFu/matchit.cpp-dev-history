@@ -40,7 +40,7 @@ public:
     bool matchValue(Value const& value) const
     {
         resetId(mPattern);
-        return ::matchPattern(mPattern, value);
+        return ::matchPattern(value, mPattern);
     }
     auto execute() const
     {
