@@ -377,6 +377,40 @@ void test12()
     testMatch(std::array<int, 3>{1, 2, 3}, 3, dsArray);
 }
 
+template <size_t I>
+constexpr auto get(A const& a)
+{
+    if constexpr(I==0)
+    {
+        return a.a;
+    }
+    else if constexpr(I==1)
+    {
+        return a.b;
+    }
+}
+
+namespace std
+{
+template <>
+class tuple_size<A> : public std::integral_constant<size_t, 2> {};
+} // namespace std
+
+void test13()
+{
+    auto const dsAgg = [](auto const& v)
+    {
+        Id<int> i;
+        return match(v)(
+            pattern(ds(1, i)) = [&i]{return *i;},
+            pattern(ds(_, i)) = [&i]{return *i;}
+        );
+    };
+
+    testMatch(A{1, 2}, 2, dsAgg);
+    testMatch(A{2, 1}, 1, dsAgg);
+}
+
 int main()
 {
     test1();
