@@ -492,7 +492,11 @@ namespace impl
     } // namespace detail
 
     template <class F, class Tuple>
-    constexpr decltype(auto) apply(F &&f, Tuple &&t)
+    constexpr auto apply(F &&f, Tuple &&t)
+    -> decltype(
+    detail::apply_impl(
+        std::forward<F>(f), std::forward<Tuple>(t),
+        std::make_index_sequence<std::tuple_size_v<std::remove_reference_t<Tuple> > >{}))
     {
         return detail::apply_impl(
             std::forward<F>(f), std::forward<Tuple>(t),
@@ -531,7 +535,10 @@ auto dropImpl(Tuple &&t, std::index_sequence<I...>)
 }
 
 template <std::size_t N, typename Tuple>
-auto drop(Tuple &&t)
+auto drop(Tuple &&t) -> decltype(
+    dropImpl<N>(
+        std::forward<Tuple>(t),
+        std::make_index_sequence<std::tuple_size_v<std::remove_reference_t<Tuple> > - N>{}))
 {
     return dropImpl<N>(
         std::forward<Tuple>(t),
@@ -614,26 +621,27 @@ static bool tupleMatchImpl(std::tuple<Values...> const &values, std::tuple<Patte
     return false;
 }
 
-
-template <typename Tuple>
-auto visitableToTuple(Tuple &&valueTuple)
-{
-    return impl::apply(
-        [](auto const &...values) {
-            return std::forward_as_tuple(values...);
-        },
-        valueTuple);
-}
+// template <typename Tuple>
+// auto visitableToTuple(Tuple &&valueTuple)
+// -> decltype(std::drop<N>(valueType))
+// {
+//     return impl::apply(
+//         [](auto const &...values) {
+//             return std::forward_as_tuple(values...);
+//         },
+//         valueTuple);
+// }
 
 template <typename... Patterns>
 class PatternTraits<Ds<Patterns...> >
 {
 public:
     template <typename Tuple>
-    static auto matchPatternImpl(Tuple const &valueTuple, Ds<Patterns...> const &dsPat) -> decltype(tupleMatchImpl(visitableToTuple(valueTuple), dsPat.patterns()))
+    static auto matchPatternImpl(Tuple const &valueTuple, Ds<Patterns...> const &dsPat)
+        -> decltype(tupleMatchImpl(drop<0>(valueTuple), dsPat.patterns()))
     // static auto matchPatternImpl(Tuple const &valueTuple, Ds<Patterns...> const &dsPat)
     {
-        return tupleMatchImpl(visitableToTuple(valueTuple), dsPat.patterns());
+        return tupleMatchImpl(drop<0>(valueTuple), dsPat.patterns());
     }
     static void resetId(Ds<Patterns...> const &dsPat)
     {
