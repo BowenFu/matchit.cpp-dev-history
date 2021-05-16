@@ -486,6 +486,10 @@ void test19()
             // `/ ...`
             pattern(ds('/', ooo(_))) = []{ return 4; },
 
+            pattern(ds(ooo(j))) = []{ return 222; },
+            // `3 3 3 3 ..` all 3
+            pattern(ds(ooo(3))) = []{ return 333; },
+
             // `... / ... 3 ...`
             pattern(ds(ooo(_), '/', ooo(_), 3, ooo(_))) = [] { return 5; },
 
@@ -512,6 +516,17 @@ void test19()
     testMatch(std::make_tuple('*', std::string("123"), 3), 3, matchFunc);
     testMatch(std::make_tuple('*', std::string("123"), 5), 6, matchFunc);
     testMatch(std::make_tuple('[', '/', ']', 2, 2, 3, 3, 5), 5, matchFunc);
+    testMatch(std::make_tuple(3, 3, 3, 3, 3), 3, matchFunc);
+    compare(matchPattern(std::make_tuple(3, 3, 3, 3, 3), ds(ooo(3))), true);
+    compare(matchPattern(std::make_tuple(3, 3, 3, 3, 3), ds(ooo(2), 3)), false);
+    compare(matchPattern(std::make_tuple("string", 3, 3, 3, 3), ds(ooo(2), 3)), false);
+    compare(matchPattern(std::make_tuple(3, 3, 3, 3, 3), ooo(3)), true);
+    compare(matchPattern(std::make_tuple(3, 3, 3, 3, 3), ooo(2)), false);
+    compare(matchPattern(std::make_tuple("string", 3, 3, 3, 3), ds(ooo(2))), false);
+    compare(matchPattern(std::make_tuple("string"), ds(ooo(5))), false);
+    // Debug<decltype(ds(ooo(2)))> x;
+    static_assert(MatchFuncDefinedV<std::tuple<int, int, int, int, int>, Ds<Ooo<int>>>);
+    static_assert(MatchFuncDefinedV<std::tuple<std::string, int, int, int, int>, Ds<Ooo<int>>>);
 }
 
 void test20()

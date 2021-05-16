@@ -543,11 +543,11 @@ template <std::size_t N, typename Tuple>
 auto take(Tuple &&t) -> decltype(
     takeImpl(
         std::forward<Tuple>(t),
-        std::make_index_sequence<std::tuple_size_v<std::remove_reference_t<Tuple> > - N>{}))
+        std::make_index_sequence<N>{}))
 {
     return takeImpl(
         std::forward<Tuple>(t),
-        std::make_index_sequence<std::tuple_size_v<std::remove_reference_t<Tuple> > - N>{});
+        std::make_index_sequence<N>{});
 }
 
 template <std::size_t N, typename Tuple, std::size_t... I>
@@ -666,13 +666,31 @@ static bool tryOooMatch(std::tuple<Values...> const &values, std::tuple<Patterns
     return false;
 }
 
-template <typename... Values, typename... Patterns, std::size_t... I>
-static bool tryOooMatchImpl(std::tuple<Values...> const &values, std::tuple<Patterns...> const &patterns, std::index_sequence<I...>)
+template < std::size_t I, typename... Values, typename... Patterns>
+bool tryOooMatchImplHelper(std::tuple<Values...> const &values, std::tuple<Patterns...> const &patterns)
 {
     using std::get;
     // FIXME: cache matchPattern for ooo
-    return ((::matchPattern(take<I>(values), get<0>(patterns)) && tryOooMatch(drop<I>(values), drop<1>(patterns))) || ...);
+    if constexpr (MatchFuncDefinedV<decltype(take<I>(values)), std::tuple_element_t<0, std::tuple<Patterns...> > >)
+    {
+        // std::cout << "values num: " << sizeof...(Values) << "\t index: " << I << "\tpatterns num: " << sizeof...(Patterns) << std::endl;
+        // return ((::matchPattern(take<I>(values), get<0>(patterns)) && tryOooMatch(drop<I>(values), drop<1>(patterns))));
+        auto result = ((::matchPattern(take<I>(values), get<0>(patterns)) && tryOooMatch(drop<I>(values), drop<1>(patterns))));
+        // std::cout << "result\t" << result << std::endl;
+        return result;
+    }
+    return false;
 }
+
+template <typename... Values, typename... Patterns, std::size_t... I>
+bool tryOooMatchImpl(std::tuple<Values...> const &values, std::tuple<Patterns...> const &patterns, std::index_sequence<I...>)
+{
+    auto result = ((tryOooMatchImplHelper<I>(values, patterns)) || ...);
+    // std::cout << "tryOooMatchImpl\t" << result << std::endl;
+    return result;
+    // return ((tryOooMatchImplHelper<I>(values, patterns)) || ...);
+}
+
 template <typename... Values, typename... Patterns>
 static bool tupleMatchImpl(std::tuple<Values...> const &values, std::tuple<Patterns...> const &patterns)
 {
@@ -728,13 +746,22 @@ class PatternTraits<Ooo<Pattern> >
 {
 public:
     template <typename... Values>
-    static auto matchPatternImpl(std::tuple<Values...> const &values, Ooo<Pattern> const &oooPat) -> decltype((::matchPattern(std::declval<Values>(), oooPat.pattern()) && ...))
+    static auto matchPatternImpl(std::tuple<Values...> const &valueTuple, Ooo<Pattern> const &oooPat) -> decltype((::matchPattern(std::declval<Values>(), oooPat.pattern()) && ...))
     {
         return std::apply(
             [&oooPat](Values const &...values) {
-                return (::matchPattern(values, oooPat.pattern()) && ...);
+                auto result = (::matchPattern(values, oooPat.pattern()) && ...);
+                // std::cout << "match " << ", ";
+                // ((std::cout << ... << values) << "\t");
+                // if constexpr(std::is_same_v<decltype(oooPat.pattern()), int>)
+                // {
+                //     std::cout << ", pat" << oooPat.pattern() << std::endl;
+                // }
+                // std::cout << "match ooo\t" << result << std::endl;
+                return result;
+                // return (::matchPattern(values, oooPat.pattern()) && ...);
             },
-            values);
+            valueTuple);
     }
     static void resetId(Ooo<Pattern> const &oooPat)
     {
