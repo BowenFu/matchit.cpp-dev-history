@@ -614,22 +614,26 @@ static bool tupleMatchImpl(std::tuple<Values...> const &values, std::tuple<Patte
     return false;
 }
 
+
+template <typename Tuple>
+auto visitableToTuple(Tuple &&valueTuple)
+{
+    return impl::apply(
+        [](auto const &...values) {
+            return std::forward_as_tuple(values...);
+        },
+        valueTuple);
+}
+
 template <typename... Patterns>
 class PatternTraits<Ds<Patterns...> >
 {
 public:
     template <typename Tuple>
-    static bool matchPatternImpl(Tuple const &valueTuple, Ds<Patterns...> const &dsPat)
+    static auto matchPatternImpl(Tuple const &valueTuple, Ds<Patterns...> const &dsPat) -> decltype(tupleMatchImpl(visitableToTuple(valueTuple), dsPat.patterns()))
+    // static auto matchPatternImpl(Tuple const &valueTuple, Ds<Patterns...> const &dsPat)
     {
-        return std::apply(
-            [&valueTuple](Patterns const &...patterns) {
-                return impl::apply(
-                    [&patterns...](auto const &...values) {
-                        return tupleMatchImpl(std::forward_as_tuple(values...), std::make_tuple(patterns...));
-                    },
-                    valueTuple);
-            },
-            dsPat.patterns());
+        return tupleMatchImpl(visitableToTuple(valueTuple), dsPat.patterns());
     }
     static void resetId(Ds<Patterns...> const &dsPat)
     {

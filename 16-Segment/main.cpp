@@ -473,7 +473,6 @@ void test18()
 void test19()
 {
     auto const matchFunc = [](auto &&input) {
-        Id<int> i;
         Id<int> j;
         return match(input)(
             // `... / 2 3`
@@ -507,10 +506,53 @@ void test19()
             pattern(_) = [] { return -1; });
     };
     testMatch(std::make_tuple('/', 2, 3), 1, matchFunc);
-    testMatch(std::make_tuple('/', std::string("123"), 3), 2, matchFunc);
+    testMatch(std::make_tuple('/', "123", 3), 2, matchFunc);
     testMatch(std::make_tuple('*', std::string("123"), 3), 3, matchFunc);
     testMatch(std::make_tuple('*', std::string("123"), 5), 6, matchFunc);
     testMatch(std::make_tuple('[', '/', ']', 2, 2, 3, 3, 5), 5, matchFunc);
+}
+
+void test20()
+{
+    // auto const matchFunc = [](auto &&input) {
+    //     Id<std::string> x;
+    //     return match(input)(
+    //         // `(+ ... (expt (sin x) 2) ... (expt (cos x) 2) ...)`
+    //         pattern(
+    //             ds(
+    //                 std::string("+"),
+    //                 ooo(_),
+    //                 ds(
+    //                     std::string("expt"),
+    //                     ds(
+    //                         std::string("sin"),
+    //                         x),
+    //                     2),
+    //                 ooo(_),
+    //                 ds(
+    //                     std::string("expt"),
+    //                     ds(
+    //                         std::string("cos"),
+    //                         x),
+    //                     2),
+    //                 ooo(_))) = [] { return 1; },
+    //         pattern(_) = [] { return -1; });
+    // };
+    // std::string y("y");
+    // testMatch(
+    //     std::make_tuple(
+    //         "+",
+    //         123,
+    //         // std::make_tuple("expt", y, 2),
+    //         // std::make_tuple("expt", std::make_tuple("sin", y), 2),
+    //         // std::make_tuple("expt", y, 3),
+    //         // std::make_tuple("expt", y, 4),
+    //         // std::make_tuple("expt", std::make_tuple("cos", y), 2),
+    //         std::make_tuple("expt", std::make_tuple("sin", y), 3)
+    //         ),
+    //     1,
+    //     matchFunc
+    // );
 }
 
 int main()
@@ -534,5 +576,6 @@ int main()
     test17();
     test18();
     test19();
+    test20();
     return 0;
 }
