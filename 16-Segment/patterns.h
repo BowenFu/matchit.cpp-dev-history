@@ -501,27 +501,27 @@ namespace impl
 }
 
 template <typename Pattern>
-class Segment;
+class Ooo;
 
 template <typename Pattern>
-class IsSegment : public std::false_type
+class IsOoo : public std::false_type
 {
 };
 
 template <typename Pattern>
-class IsSegment<Segment<Pattern> > : public std::true_type
+class IsOoo<Ooo<Pattern> > : public std::true_type
 {
 };
 
 template <typename Pattern>
-inline constexpr bool isSegV = IsSegment<std::decay_t<Pattern> >::value;
+inline constexpr bool isOooV = IsOoo<std::decay_t<Pattern> >::value;
 
-static_assert(isSegV<Segment<int> > == true);
-static_assert(isSegV<Segment<int &> > == true);
-static_assert(isSegV<Segment<int const &> > == true);
-static_assert(isSegV<Segment<int &&> > == true);
-static_assert(isSegV<int> == false);
-static_assert(isSegV<const Segment<WildCard> &> == true);
+static_assert(isOooV<Ooo<int> > == true);
+static_assert(isOooV<Ooo<int &> > == true);
+static_assert(isOooV<Ooo<int const &> > == true);
+static_assert(isOooV<Ooo<int &&> > == true);
+static_assert(isOooV<int> == false);
+static_assert(isOooV<const Ooo<WildCard> &> == true);
 
 template <std::size_t N, typename Tuple, std::size_t... I>
 auto dropImpl(Tuple &&t, std::index_sequence<I...>)
@@ -558,43 +558,43 @@ static_assert(MatchFuncDefinedV<std::string, std::string>);
 static_assert(!MatchFuncDefinedV<std::size_t, std::string>);
 
 template <typename... Values, typename... Patterns>
-static bool trySegmentMatch(std::tuple<Values...> const &values, std::tuple<Patterns...> const &patterns)
+static bool tryOooMatch(std::tuple<Values...> const &values, std::tuple<Patterns...> const &patterns)
 {
-    // std::cout << "trySegmentMatch " << sizeof...(Values) << ", " << sizeof...(Patterns) << std::endl;
+    // std::cout << "tryOooMatch " << sizeof...(Values) << ", " << sizeof...(Patterns) << std::endl;
     if constexpr (sizeof...(Patterns) == 0)
     {
         return sizeof...(Values) == 0;
     }
-    else if constexpr (isSegV<std::tuple_element_t<0, std::tuple<Patterns...> > >)
+    else if constexpr (isOooV<std::tuple_element_t<0, std::tuple<Patterns...> > >)
     {
         auto index = std::make_index_sequence<sizeof...(Values) + 1>{};
-        return trySegmentMatchImpl(values, patterns, index);
+        return tryOooMatchImpl(values, patterns, index);
     }
     else if constexpr (sizeof...(Values) >= 1)
     {
         if constexpr (MatchFuncDefinedV<std::tuple_element_t<0, std::tuple<Values...> >, std::tuple_element_t<0, std::tuple<Patterns...> > >)
         {
-            return ::matchPattern(std::get<0>(values), std::get<0>(patterns)) && trySegmentMatch(drop<1>(values), drop<1>(patterns));
+            return ::matchPattern(std::get<0>(values), std::get<0>(patterns)) && tryOooMatch(drop<1>(values), drop<1>(patterns));
         }
     }
     return false;
 }
 
 template <typename... Values, typename... Patterns, std::size_t... I>
-static bool trySegmentMatchImpl(std::tuple<Values...> const &values, std::tuple<Patterns...> const &patterns, std::index_sequence<I...>)
+static bool tryOooMatchImpl(std::tuple<Values...> const &values, std::tuple<Patterns...> const &patterns, std::index_sequence<I...>)
 {
     using std::get;
-    return (trySegmentMatch(drop<I>(values), drop<1>(patterns)) || ...);
+    return (tryOooMatch(drop<I>(values), drop<1>(patterns)) || ...);
 }
 
 template <typename... Values, typename... Patterns>
 static bool tupleMatchImpl(std::tuple<Values...> const &values, std::tuple<Patterns...> const &patterns)
 {
     // std::cout << "tupleMatchImpl " << sizeof...(Values) << ", " << sizeof...(Patterns) << std::endl;
-    constexpr bool KALLOW_TYPE_MISMATCH_FOR_NON_SEG = false;
-    if constexpr (KALLOW_TYPE_MISMATCH_FOR_NON_SEG)
+    constexpr bool KALLOW_TYPE_MISMATCH_FOR_NON_OOO = false;
+    if constexpr (KALLOW_TYPE_MISMATCH_FOR_NON_OOO)
     {
-        return trySegmentMatch(values, patterns);
+        return tryOooMatch(values, patterns);
     }
     else if constexpr (true)
     {
@@ -602,9 +602,9 @@ static bool tupleMatchImpl(std::tuple<Values...> const &values, std::tuple<Patte
         {
             return sizeof...(Values) == 0;
         }
-        else if constexpr (isSegV<std::tuple_element_t<0, std::tuple<Patterns...> > >)
+        else if constexpr (isOooV<std::tuple_element_t<0, std::tuple<Patterns...> > >)
         {
-            return trySegmentMatch(values, patterns);
+            return tryOooMatch(values, patterns);
         }
         else if constexpr (sizeof...(Values) >= 1)
         {
@@ -644,10 +644,10 @@ private:
 };
 
 template <typename Pattern>
-class Segment
+class Ooo
 {
 public:
-    explicit Segment(Pattern const &pattern)
+    explicit Ooo(Pattern const &pattern)
         : mPattern{pattern}
     {
     }
@@ -661,23 +661,23 @@ private:
 };
 
 template <typename Pattern>
-auto seg(Pattern const &pattern)
+auto ooo(Pattern const &pattern)
 {
-    return Segment<Pattern>{pattern};
+    return Ooo<Pattern>{pattern};
 }
 
 template <typename Pattern>
-class PatternTraits<Segment<Pattern> >
+class PatternTraits<Ooo<Pattern> >
 {
 public:
     template <typename Value>
-    static auto matchPatternImpl(Value const &value, Segment<Pattern> const &segPat) -> decltype(::matchPattern(value, segPat.pattern()))
+    static auto matchPatternImpl(Value const &value, Ooo<Pattern> const &oooPat) -> decltype(::matchPattern(value, oooPat.pattern()))
     {
-        return ::matchPattern(value, segPat.pattern());
+        return ::matchPattern(value, oooPat.pattern());
     }
-    static void resetId(Segment<Pattern> const &segPat)
+    static void resetId(Ooo<Pattern> const &oooPat)
     {
-        ::resetId(segPat.pattern());
+        ::resetId(oooPat.pattern());
     }
 };
 

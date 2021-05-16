@@ -476,20 +476,20 @@ void test19()
         Id<int> i;
         Id<int> j;
         return match(input)(
-            // pattern(ds(seg(_), seg(_), seg(_), seg(_))) = []{ return 8; },
-            // pattern(ds(seg(_), seg(_), seg(_))) = []{ return 8; },
-            // pattern(ds(seg(_), seg(_))) = []{ return 8; },
-            // pattern(ds(seg(_))) = []{ return 8; },
-            // pattern(ds('/', seg(_))) = []{ return 8; },
-            // pattern(ds('/', seg(_), seg(_), 3)) = []{ return 8; },
-            // pattern(ds(seg(_), 3)) = []{ return 8; },
-            // pattern(ds(seg(_), '/', 2, 3)) = []{ return 8; },
+            // pattern(ds(ooo(_), ooo(_), ooo(_), ooo(_))) = []{ return 9; }, // equal to ds(_)
+            // pattern(ds(ooo(_), ooo(_), ooo(_))) = []{ return 8; },
+            // pattern(ds(ooo(_), ooo(_))) = []{ return 8; },
+            // pattern(ds(ooo(_))) = []{ return 8; },
+            // pattern(ds('/', ooo(_))) = []{ return 8; },
+            // pattern(ds('/', ooo(_), ooo(_), 3)) = []{ return 8; },
+            // pattern(ds(ooo(_), 3)) = []{ return 8; },
+            // pattern(ds(ooo(_), '/', 2, 3)) = []{ return 8; },
             // This won't compile since we do compile-time check unless `Seg` is detected.
             // pattern(ds(_, std::string("123"), 3)) = []{ return 1; },
             // any containing ... / ... 3 ...
-            // pattern(ds(seg(_), j, 3)) = []{ return 1; },
-            pattern(ds(seg(_), or_(j), 3)) = [] { return 1; },
-            pattern(ds(seg(_), '/', seg(_), 3, seg(_))) = [] { return 8; },
+            // pattern(ds(ooo(_), j, 3)) = []{ return 1; },
+            pattern(ds(ooo(_), or_(j), 3)) = [] { return 1; },
+            pattern(ds(ooo(_), '/', ooo(_), 3, ooo(_))) = [] { return 8; },
             pattern(_) = [] { return -1; });
     };
     testMatch(std::make_tuple('/', 2, 3), 1, matchFunc);
