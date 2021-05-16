@@ -666,29 +666,51 @@ static bool tryOooMatch(std::tuple<Values...> const &values, std::tuple<Patterns
     return false;
 }
 
+class OooMatchBreak : public std::exception
+{
+};
+
 template < std::size_t I, typename... Values, typename... Patterns>
 bool tryOooMatchImplHelper(std::tuple<Values...> const &values, std::tuple<Patterns...> const &patterns)
 {
     using std::get;
     // FIXME: cache matchPattern for ooo
-    if constexpr (MatchFuncDefinedV<decltype(take<I>(values)), std::tuple_element_t<0, std::tuple<Patterns...> > >)
+    if constexpr (I == 0)
     {
-        // std::cout << "values num: " << sizeof...(Values) << "\t index: " << I << "\tpatterns num: " << sizeof...(Patterns) << std::endl;
-        // return ((::matchPattern(take<I>(values), get<0>(patterns)) && tryOooMatch(drop<I>(values), drop<1>(patterns))));
-        auto result = ((::matchPattern(take<I>(values), get<0>(patterns)) && tryOooMatch(drop<I>(values), drop<1>(patterns))));
-        // std::cout << "result\t" << result << std::endl;
-        return result;
+        return (tryOooMatch(values, drop<1>(patterns)));
     }
-    return false;
+    else if constexpr (I > 0)
+    {
+        if constexpr (MatchFuncDefinedV<decltype(take<I>(values)), std::tuple_element_t<0, std::tuple<Patterns...> > >)
+        {
+            // std::cout << "values num: " << sizeof...(Values) << "\t index: " << I << "\tpatterns num: " << sizeof...(Patterns) << std::endl;
+            // return ((::matchPattern(take<I>(values), get<0>(patterns)) && tryOooMatch(drop<I>(values), drop<1>(patterns))));
+            if (!PatternTraits<std::tuple_element_t<0, std::tuple<Patterns...> > >::matchPatternImplSingle(get<I - 1>(values), get<0>(patterns)))
+            {
+                throw OooMatchBreak();
+            }
+
+            if (!tryOooMatch(drop<I>(values), drop<1>(patterns)))
+            {
+                return false;
+            }
+            return true;
+        }
+    }
+    throw OooMatchBreak();
 }
 
 template <typename... Values, typename... Patterns, std::size_t... I>
 bool tryOooMatchImpl(std::tuple<Values...> const &values, std::tuple<Patterns...> const &patterns, std::index_sequence<I...>)
 {
-    auto result = ((tryOooMatchImplHelper<I>(values, patterns)) || ...);
-    // std::cout << "tryOooMatchImpl\t" << result << std::endl;
-    return result;
-    // return ((tryOooMatchImplHelper<I>(values, patterns)) || ...);
+    try
+    {
+        return ((tryOooMatchImplHelper<I>(values, patterns)) || ...);
+    }
+    catch (const OooMatchBreak &)
+    {
+        return false;
+    }
 }
 
 template <typename... Values, typename... Patterns>
@@ -762,6 +784,11 @@ public:
                 // return (::matchPattern(values, oooPat.pattern()) && ...);
             },
             valueTuple);
+    }
+    template <typename Value>
+    static auto matchPatternImplSingle(Value const &value, Ooo<Pattern> const &oooPat) -> decltype(::matchPattern(value, oooPat.pattern()))
+    {
+        return ::matchPattern(value, oooPat.pattern());
     }
     static void resetId(Ooo<Pattern> const &oooPat)
     {
