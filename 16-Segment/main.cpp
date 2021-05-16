@@ -378,7 +378,9 @@ void test13()
     };
 
     testMatch(A{1, 2}, 2, dsAgg);
-    testMatch(A{2, 1}, 1, dsAgg);
+    testMatch(A{3, 2}, 2, dsAgg);
+    testMatch(A{5, 2}, 2, dsAgg);
+    testMatch(A{2, 5}, 5, dsAgg);
 }
 
 template <typename T>
@@ -515,41 +517,66 @@ void test19()
 void test20()
 {
     auto const matchFunc = [](auto &&input) {
-        Id<std::string> x;
+        Id<char> x;
+        // Id<int> i;
+        int i = 2;
         return match(input)(
             // `(+ ... (expt (sin x) 2) ... (expt (cos x) 2) ...)`
             pattern(
                 ds(
-                    std::string("+"),
+                    '+',
+                    ooo(_),
+                    // _,
+                   1,
                     ds(
-                        std::string("expt"),
+                        '^',
                         ds(
-                            std::string("sin"),
-                            x),
-                        2),
-                    ds(
-                        std::string("expt"),
-                        ds(
-                            std::string("cos"),
+                            's',
                             x),
                         2)
+                    // ,ds(
+                    //     std::string("expt"),
+                    //     ds(
+                    //         std::string("cos"),
+                    //         x),
+                    //     2)
                     )) = [] { return 1; },
+            // why this one fail to match?
+            pattern(
+                ds('+', ooo(_), 1, ds('^', ds('s', x), 2))) = [] { return 9; },
+            pattern(
+                ds('+', ooo(_), 1, ds('^', ds('s', x), ooo(_), 2))) = [] { return 8; },
+            pattern(
+                ds('+', ooo(_), 1, ds('^', ds('s', x), ooo(_)), ooo(_))) = [] { return 7; },
+            pattern(
+                ds('+', 1, ds('^', ooo(_)), ooo(_))) = [] { return 6; },
+            pattern(
+                ds('+', 1, ds(ooo(_)), ooo(_))) = [] { return 5; },
+            pattern(
+                ds('+', 1, _, ooo(_))) = [] { return 4; },
+            pattern(
+                ds('+', 1, ooo(_))) = [] { return 3; },
+            pattern(
+                ds('+', ooo(_))) = [] { return 2; },
             pattern(_) = [] { return -1; });
     };
-    std::string y("y");
+    char y ='y';
     testMatch(
         std::make_tuple(
-            "+",
+            '+',
+            1,
             // std::make_tuple("expt", y, 2),
-            std::make_tuple("expt", std::make_tuple("sin", y), 2),
+            std::make_tuple('^', std::make_tuple('s', y), 2)
+            // ,
             // std::make_tuple("expt", y, 3),
             // std::make_tuple("expt", y, 4),
-            std::make_tuple("expt", std::make_tuple("cos", y), 2)
+            // std::make_tuple("expt", std::make_tuple("cos", y), 2)
             // std::make_tuple("expt", std::make_tuple("sin", y), 3)
             ),
         1,
         matchFunc
     );
+    assert(matchPattern(2, 2));
 }
 
 // void test21()

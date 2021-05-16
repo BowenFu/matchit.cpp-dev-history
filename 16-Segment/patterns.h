@@ -410,6 +410,10 @@ public:
     template <typename Value>
     auto matchValue(Value const &value) const -> decltype(**mValue == value, IdTrait<own>::matchValueImpl(*mValue, value), bool{})
     {
+        // if constexpr (std::is_same_v<Value, int>)
+        // {
+        //     std::cout << "bind value " << value << std::endl;
+        // }
         if (*mValue)
         {
             return **mValue == value;
@@ -527,11 +531,32 @@ static_assert(isOooV<Ooo<int &&> > == true);
 static_assert(isOooV<int> == false);
 static_assert(isOooV<const Ooo<WildCard> &> == true);
 
+template <typename Tuple, std::size_t... I>
+auto takeImpl(Tuple &&t, std::index_sequence<I...>)
+{
+    using std::get;
+    return std::forward_as_tuple(get<I>(std::forward<Tuple>(t))...);
+    // return std::make_tuple(get<I>(std::forward<Tuple>(t))...);
+}
+
+template <std::size_t N, typename Tuple>
+auto take(Tuple &&t) -> decltype(
+    takeImpl(
+        std::forward<Tuple>(t),
+        std::make_index_sequence<std::tuple_size_v<std::remove_reference_t<Tuple> > - N>{}))
+{
+    return takeImpl(
+        std::forward<Tuple>(t),
+        std::make_index_sequence<std::tuple_size_v<std::remove_reference_t<Tuple> > - N>{});
+}
+
 template <std::size_t N, typename Tuple, std::size_t... I>
 auto dropImpl(Tuple &&t, std::index_sequence<I...>)
 {
     using std::get;
-    return std::forward_as_tuple(get<I + N>(std::forward<Tuple>(t))...);
+    // Fixme, use std::forward_as_tuple when possible.
+    // return std::forward_as_tuple(get<I + N>(std::forward<Tuple>(t))...);
+    return std::make_tuple(get<I + N>(std::forward<Tuple>(t))...);
 }
 
 template <std::size_t N, typename Tuple>
@@ -556,13 +581,67 @@ struct MatchFuncDefined<Value, Pattern, std::void_t<decltype(matchPattern(std::d
 {
 };
 
-// template<typename... Args>
 template <typename Value, typename Pattern>
 inline constexpr bool MatchFuncDefinedV = MatchFuncDefined<Value, Pattern>::value;
+
+static_assert(!MatchFuncDefinedV<const int &, const Ds<char, Ds<char, Id<char, true> >, int> &>);
+static_assert(!MatchFuncDefinedV<int, Ds<std::string, Ds<std::string, Id<std::string, true> >, int>>);
 
 static_assert(!MatchFuncDefinedV<char, std::string>);
 static_assert(MatchFuncDefinedV<std::string, std::string>);
 static_assert(!MatchFuncDefinedV<std::size_t, std::string>);
+static_assert(MatchFuncDefinedV<char, char>);
+
+template <typename... Values, typename... Patterns>
+static bool tupleMatchImpl(std::tuple<Values...> const &values, std::tuple<Patterns...> const &patterns);
+
+template <typename... Patterns>
+class PatternTraits<Ds<Patterns...> >
+{
+public:
+    template <typename Tuple>
+    static auto matchPatternImpl(Tuple const &valueTuple, Ds<Patterns...> const &dsPat)
+        -> decltype(tupleMatchImpl(drop<0>(valueTuple), dsPat.patterns()))
+    {
+        return tupleMatchImpl(drop<0>(valueTuple), dsPat.patterns());
+    }
+    static void resetId(Ds<Patterns...> const &dsPat)
+    {
+        return std::apply(
+            [](Patterns const &...patterns) {
+                return (::resetId(patterns), ...);
+            },
+            dsPat.patterns());
+    }
+
+private:
+};
+
+static_assert(MatchFuncDefinedV<std::tuple<char>, Ds<char> >);
+static_assert(MatchFuncDefinedV<std::tuple<char, int, std::tuple<char, int> >,
+                                 Ds<char, int, Ds<char, int> > >);
+static_assert(MatchFuncDefinedV<std::tuple<char, int, std::tuple<char, std::tuple<char, char>, int> >,
+                                 Ds<char, int, Ds<char, Ds<char, char>, int> > >);
+static_assert(MatchFuncDefinedV<std::tuple<char, int, std::tuple<char, std::tuple<char, char>, int> >,
+                                 Ds<char, int, Ds<char, Ds<char, Id<char, true> >, int> > >);
+static_assert(MatchFuncDefinedV<const std::tuple<char, std::tuple<char, char>, int> &,
+                                const Ds<char, Ds<char, char>, int> &>);
+static_assert(MatchFuncDefinedV<char&,
+                                Id<char, true>>);
+static_assert(MatchFuncDefinedV<const std::tuple<char, char> &,
+                                const Ds<char, Id<char, true> > &>);
+static_assert(MatchFuncDefinedV<const std::tuple<char, std::tuple<char, char>> &,
+                                const Ds<char, Ds<char, Id<char, true> >> &>);
+static_assert(MatchFuncDefinedV<const std::tuple<std::tuple<char, char>, int> &,
+                                const Ds<Ds<char, Id<char, true> >, int> &>);
+static_assert(MatchFuncDefinedV<const std::tuple<int, std::tuple<char, char>, int> &,
+                                const Ds<int, Ds<char, Id<char, true> >, int> &>);
+static_assert(MatchFuncDefinedV<const std::tuple<char, std::tuple<char, char>, char> &,
+                                const Ds<char, Ds<char, Id<char, true> >, char> &>);
+static_assert(MatchFuncDefinedV<std::tuple<int, std::tuple<int, int>, int>,
+                                Ds<int, Ds<int, Id<int, true> >, int>>);
+// static_assert(MatchFuncDefinedV<const std::tuple<char, std::tuple<char, char>, int> &,
+//                                 const Ds<char, Ds<char, Id<char, true> >, int> &>);
 
 template <typename... Values, typename... Patterns>
 static bool tryOooMatch(std::tuple<Values...> const &values, std::tuple<Patterns...> const &patterns)
@@ -591,9 +670,9 @@ template <typename... Values, typename... Patterns, std::size_t... I>
 static bool tryOooMatchImpl(std::tuple<Values...> const &values, std::tuple<Patterns...> const &patterns, std::index_sequence<I...>)
 {
     using std::get;
-    return (tryOooMatch(drop<I>(values), drop<1>(patterns)) || ...);
+    // FIXME: cache matchPattern for ooo
+    return ((::matchPattern(take<I>(values), get<0>(patterns)) && tryOooMatch(drop<I>(values), drop<1>(patterns))) || ...);
 }
-
 template <typename... Values, typename... Patterns>
 static bool tupleMatchImpl(std::tuple<Values...> const &values, std::tuple<Patterns...> const &patterns)
 {
@@ -620,40 +699,6 @@ static bool tupleMatchImpl(std::tuple<Values...> const &values, std::tuple<Patte
     }
     return false;
 }
-
-// template <typename Tuple>
-// auto visitableToTuple(Tuple &&valueTuple)
-// -> decltype(std::drop<N>(valueType))
-// {
-//     return impl::apply(
-//         [](auto const &...values) {
-//             return std::forward_as_tuple(values...);
-//         },
-//         valueTuple);
-// }
-
-template <typename... Patterns>
-class PatternTraits<Ds<Patterns...> >
-{
-public:
-    template <typename Tuple>
-    static auto matchPatternImpl(Tuple const &valueTuple, Ds<Patterns...> const &dsPat)
-        -> decltype(tupleMatchImpl(drop<0>(valueTuple), dsPat.patterns()))
-    // static auto matchPatternImpl(Tuple const &valueTuple, Ds<Patterns...> const &dsPat)
-    {
-        return tupleMatchImpl(drop<0>(valueTuple), dsPat.patterns());
-    }
-    static void resetId(Ds<Patterns...> const &dsPat)
-    {
-        return std::apply(
-            [](Patterns const &...patterns) {
-                return (::resetId(patterns), ...);
-            },
-            dsPat.patterns());
-    }
-
-private:
-};
 
 template <typename Pattern>
 class Ooo
@@ -682,10 +727,14 @@ template <typename Pattern>
 class PatternTraits<Ooo<Pattern> >
 {
 public:
-    template <typename Value>
-    static auto matchPatternImpl(Value const &value, Ooo<Pattern> const &oooPat) -> decltype(::matchPattern(value, oooPat.pattern()))
+    template <typename... Values>
+    static auto matchPatternImpl(std::tuple<Values...> const &values, Ooo<Pattern> const &oooPat) -> decltype((::matchPattern(std::declval<Values>(), oooPat.pattern()) && ...))
     {
-        return ::matchPattern(value, oooPat.pattern());
+        return std::apply(
+            [&oooPat](Values const &...values) {
+                return (::matchPattern(values, oooPat.pattern()) && ...);
+            },
+            values);
     }
     static void resetId(Ooo<Pattern> const &oooPat)
     {
