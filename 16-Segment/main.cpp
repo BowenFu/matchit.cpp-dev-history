@@ -89,7 +89,7 @@ void test2()
     testMatch(std::make_tuple('/', 0, 1), 0, matchFunc);
     testMatch(std::make_tuple('*', 2, 1), 2, matchFunc);
     testMatch(std::make_tuple('/', 2, 1), -1, matchFunc);
-    testMatch(std::make_tuple('/', 2, 3), 8, matchFunc);
+    testMatch(std::make_tuple('/', 2, 3), -1, matchFunc);
 }
 
 struct A
@@ -519,38 +519,41 @@ void test19()
             // pattern(ds('/', seg(_), seg(_), 3)) = []{ return 8; },
             // pattern(ds(seg(_), 3)) = []{ return 8; },
             // pattern(ds(seg(_), '/', 2, 3)) = []{ return 8; },
-            pattern(ds(seg(_), seg(_), 3, seg(_))) = []{ return 8; },
-            pattern(_) = [&i, &j]{ return -1; }
+            // This won't compile since we do compile-time check unless `Seg` is detected.
+            // pattern(ds(_, std::string("123"), 3)) = []{ return 1; },
+            // any containing ... / ... 3 ...
+            pattern(ds(seg(_), std::string("123"), 3)) = []{ return 1; },
+            pattern(ds(seg(_), '/', seg(_), 3, seg(_))) = []{ return 8; },
+            // pattern(ds(_, '/', _, 3, _)) = []{ return 8; },
+            // pattern(ds(_, '/', _, _)) = []{ return 8; },
+            pattern(_) = []{ return -1; }
         );
     };
-    // testMatch(std::make_tuple('/', 1, 1), 1, matchFunc);
-    // testMatch(std::make_tuple('+', 2, 1), 3, matchFunc);
-    // testMatch(std::make_tuple('/', 0, 1), 0, matchFunc);
-    // testMatch(std::make_tuple('*', 2, 1), 2, matchFunc);
-    // testMatch(std::make_tuple('/', 2, 1), -1, matchFunc);
     testMatch(std::make_tuple('/', 2, 3), 8, matchFunc);
+    testMatch(std::make_tuple('/', std::string("123"), 3), 1, matchFunc);
+    testMatch(std::make_tuple('[', '/', ']', 2, 2, 3, 3, 5), 8, matchFunc);
 }
 
 int main()
 {
-    // test1();
-    // test2();
-    // test3();
-    // test4();
-    // test5();
-    // test6();
-    // test7();
-    // test8();
-    // test9();
-    // test10();
-    // test11();
-    // test12();
-    // test13();
-    // test14();
-    // test15();
-    // test16();
-    // test17();
-    // test18();
+    test1();
+    test2();
+    test3();
+    test4();
+    test5();
+    test6();
+    test7();
+    test8();
+    test9();
+    test10();
+    test11();
+    test12();
+    test13();
+    test14();
+    test15();
+    test16();
+    test17();
+    test18();
     test19();
     return 0;
 }

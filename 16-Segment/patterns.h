@@ -13,7 +13,18 @@
 template <typename Pattern>
 class PatternTraits;
 
+
+template <typename Value, typename Pattern, typename = std::void_t<>>
+struct MatchFuncImplDefined : std::false_type
+{
+};
+
 template <typename Value, typename Pattern>
+struct MatchFuncImplDefined<Value, Pattern, std::void_t<decltype(PatternTraits<Pattern>::matchPatternImpl(std::declval<Value>(), std::declval<Pattern>()), 0)>>
+    : std::true_type
+{
+};
+template <typename Value, typename Pattern, std::enable_if_t<MatchFuncImplDefined<Value, Pattern>::value>* = nullptr>
 bool matchPattern(Value const& value, Pattern const& pattern)
 {
     return PatternTraits<Pattern>::matchPatternImpl(value, pattern);
@@ -95,11 +106,19 @@ auto pattern(First const& f, Patterns const&... ps)
 class WildCard{};
 constexpr WildCard _;
 
+template<typename, typename, typename = std::void_t<>>
+struct HasEqualT : std::false_type
+{};
+
+template<typename T1, typename T2>
+struct HasEqualT<T1, T2, std::void_t<decltype(std::declval<T1>() == std::declval<T2>())>> : std::true_type
+{};
+
 template <typename Pattern>
 class PatternTraits
 {
 public:
-    template <typename Value>
+    template <typename Value, typename std::enable_if_t<HasEqualT<Pattern, Value>::value, void>* = nullptr>
     static bool matchPatternImpl(Value const& value, Pattern const& pattern)
     {
         return pattern == value;
@@ -496,24 +515,28 @@ auto drop(Tuple &&t)
         std::make_index_sequence<std::tuple_size_v<std::remove_reference_t<Tuple> > - N>{});
 }
 
-template <typename = void, typename... Args>
-struct test : std::false_type
+template <typename Value, typename Pattern, typename = std::void_t<>>
+struct MatchFuncDefined : std::false_type
 {
 };
 
-template <typename... Args>
-struct test<std::void_t<decltype(::matchPattern(std::declval<Args>()...))>, Args...>
+template <typename Value, typename Pattern>
+struct MatchFuncDefined<Value, Pattern, std::void_t<decltype(matchPattern(std::declval<Value>(), std::declval<Pattern>()))>>
     : std::true_type
 {
 };
 
 template<typename... Args>
-inline constexpr bool test_v = test<void, Args...>::value;
+inline constexpr bool test_v = MatchFuncDefined<Args...>::value;
+
+static_assert(!test_v<char, std::string>);
+static_assert(test_v<std::string, std::string>);
+static_assert(!test_v<std::size_t, std::string>);
 
 template <typename... Values, typename... Patterns>
 static bool trySegmentMatch(std::tuple<Values...> const& values, std::tuple<Patterns...> const& patterns)
 {
-    std::cout << "trySegmentMatch " << sizeof...(Values) << ", " << sizeof...(Patterns) << std::endl;
+    // std::cout << "trySegmentMatch " << sizeof...(Values) << ", " << sizeof...(Patterns) << std::endl;
     if constexpr (sizeof...(Patterns) == 0)
     {
         return sizeof...(Values) == 0;
@@ -543,19 +566,27 @@ static bool trySegmentMatchImpl(std::tuple<Values...> const& values, std::tuple<
 template <typename... Values, typename... Patterns>
 static bool tupleMatchImpl(std::tuple<Values...> const& values, std::tuple<Patterns...> const& patterns)
 {
-    std::cout << "tupleMatchImpl " << sizeof...(Values) << ", " << sizeof...(Patterns) << std::endl;
+    // std::cout << "tupleMatchImpl " << sizeof...(Values) << ", " << sizeof...(Patterns) << std::endl;
 
-    if constexpr (sizeof...(Patterns) == 0)
-    {
-        return sizeof...(Values) == 0;
-    }
-    else if constexpr(isSegV<std::tuple_element_t<0, std::tuple<Patterns...> > >)
+    constexpr bool KALLOW_TYPE_MISMATCH_FOR_NON_SEG = false;
+    if constexpr(KALLOW_TYPE_MISMATCH_FOR_NON_SEG)
     {
         return trySegmentMatch(values, patterns);
     }
-    else if constexpr (sizeof...(Values) >= 1)
+    else if constexpr(true)
     {
-        return ::matchPattern(std::get<0>(values), std::get<0>(patterns)) && tupleMatchImpl(drop<1>(values), drop<1>(patterns));
+        if constexpr (sizeof...(Patterns) == 0)
+        {
+            return sizeof...(Values) == 0;
+        }
+        else if constexpr (isSegV<std::tuple_element_t<0, std::tuple<Patterns...> > >)
+        {
+            return trySegmentMatch(values, patterns);
+        }
+        else if constexpr (sizeof...(Values) >= 1)
+        {
+            return ::matchPattern(std::get<0>(values), std::get<0>(patterns)) && tupleMatchImpl(drop<1>(values), drop<1>(patterns));
+        }
     }
     return false;
 }
