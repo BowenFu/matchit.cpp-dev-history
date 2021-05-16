@@ -518,15 +518,20 @@ void test19()
     testMatch(std::make_tuple('[', '/', ']', 2, 2, 3, 3, 5), 5, matchFunc);
     testMatch(std::make_tuple(3, 3, 3, 3, 3), 3, matchFunc);
     compare(matchPattern(std::make_tuple(3, 3, 3, 3, 3), ds(ooo(3))), true);
-    compare(matchPattern(std::make_tuple(3, 3, 3, 3, 3), ds(ooo(2), 3)), false);
+    compare(matchPattern(std::make_tuple("123", 3, 3, 3, 2), ds(std::string("123"), ooo(3), 2)), true);
     compare(matchPattern(std::make_tuple("string", 3, 3, 3, 3), ds(ooo(2), 3)), false);
     compare(matchPattern(std::make_tuple(3, 3, 3, 3, 3), ooo(3)), true);
-    compare(matchPattern(std::make_tuple(3, 3, 3, 3, 3), ooo(2)), false);
+    compare(matchPattern(std::make_tuple(3, 2, 3, 2, 3), ooo(2)), false);
+    compare(matchPattern(std::make_tuple(2, 2, 2, 2, 2), ooo(2)), true);
     compare(matchPattern(std::make_tuple("string", 3, 3, 3, 3), ds(ooo(2))), false);
     compare(matchPattern(std::make_tuple("string"), ds(ooo(5))), false);
     // Debug<decltype(ds(ooo(2)))> x;
     static_assert(MatchFuncDefinedV<std::tuple<int, int, int, int, int>, Ds<Ooo<int>>>);
     static_assert(MatchFuncDefinedV<std::tuple<std::string, int, int, int, int>, Ds<Ooo<int>>>);
+    compare(matchPattern(std::make_tuple(3, 2, 3, 2, 3), ooo(_ > 0)), true);
+    compare(matchPattern(std::make_tuple(3, 2, -3, 2, 3), ooo(_ > 0)), false);
+    compare(matchPattern(std::make_tuple(3, 2, 3, 2, 3), ooo(not_(3))), false);
+    compare(matchPattern(std::make_tuple(3, 2, -3, 2, 3), ooo(not_(4))), true);
 }
 
 void test20()
