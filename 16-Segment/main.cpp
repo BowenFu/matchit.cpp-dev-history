@@ -476,25 +476,41 @@ void test19()
         Id<int> i;
         Id<int> j;
         return match(input)(
-            // pattern(ds(ooo(_), ooo(_), ooo(_), ooo(_))) = []{ return 9; }, // equal to ds(_)
-            // pattern(ds(ooo(_), ooo(_), ooo(_))) = []{ return 8; },
-            // pattern(ds(ooo(_), ooo(_))) = []{ return 8; },
-            // pattern(ds(ooo(_))) = []{ return 8; },
-            // pattern(ds('/', ooo(_))) = []{ return 8; },
-            // pattern(ds('/', ooo(_), ooo(_), 3)) = []{ return 8; },
-            // pattern(ds(ooo(_), 3)) = []{ return 8; },
-            // pattern(ds(ooo(_), '/', 2, 3)) = []{ return 8; },
+            // `... / 2 3`
+            pattern(ds(ooo(_), '/', 2, 3)) = []{ return 1; },
+            // `/ ... 3`
+            pattern(ds('/', ooo(_), ooo(_), 3)) = []{ return 2; },
+            // `... 3`
+            pattern(ds(ooo(_), 3)) = []{ return 3; },
+            // `/ ...`
+            pattern(ds('/', ooo(_))) = []{ return 4; },
+
+            // `... / ... 3 ...`
+            pattern(ds(ooo(_), '/', ooo(_), 3, ooo(_))) = [] { return 5; },
+
             // This won't compile since we do compile-time check unless `Seg` is detected.
-            // pattern(ds(_, std::string("123"), 3)) = []{ return 1; },
-            // any containing ... / ... 3 ...
-            // pattern(ds(ooo(_), j, 3)) = []{ return 1; },
-            pattern(ds(ooo(_), or_(j), 3)) = [] { return 1; },
-            pattern(ds(ooo(_), '/', ooo(_), 3, ooo(_))) = [] { return 8; },
+            // pattern(ds(_, std::string("123"), 5)) = []{ return 1; },
+            // This will compile
+            pattern(ds(ooo(_), std::string("123"), 5)) = []{ return 6; },
+
+            // `... int 3`
+            pattern(ds(ooo(_), j, 3)) = []{ return 7; },
+            // `... int 3`
+            pattern(ds(ooo(_), or_(j), 3)) = [] { return 8; },
+
+            // `...`
+            pattern(ds(ooo(_), ooo(_), ooo(_), ooo(_))) = []{ return 9; }, // equal to ds(_)
+            pattern(ds(ooo(_), ooo(_), ooo(_))) = []{ return 10; },
+            pattern(ds(ooo(_), ooo(_))) = []{ return 11; },
+            pattern(ds(ooo(_))) = []{ return 12; },
+
             pattern(_) = [] { return -1; });
     };
     testMatch(std::make_tuple('/', 2, 3), 1, matchFunc);
-    testMatch(std::make_tuple('/', std::string("123"), 3), 8, matchFunc);
-    testMatch(std::make_tuple('[', '/', ']', 2, 2, 3, 3, 5), 8, matchFunc);
+    testMatch(std::make_tuple('/', std::string("123"), 3), 2, matchFunc);
+    testMatch(std::make_tuple('*', std::string("123"), 3), 3, matchFunc);
+    testMatch(std::make_tuple('*', std::string("123"), 5), 6, matchFunc);
+    testMatch(std::make_tuple('[', '/', ']', 2, 2, 3, 3, 5), 5, matchFunc);
 }
 
 int main()
