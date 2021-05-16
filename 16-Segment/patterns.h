@@ -13,22 +13,18 @@
 template <typename Pattern>
 class PatternTraits;
 
-
-template <typename Value, typename Pattern, typename = std::void_t<>>
-struct MatchFuncImplDefined : std::false_type
-{
-};
-
+// template <typename Value, typename Pattern, std::enable_if_t<MatchFuncImplDefined<Value, Pattern>::value>* = nullptr>
 template <typename Value, typename Pattern>
-struct MatchFuncImplDefined<Value, Pattern, std::void_t<decltype(PatternTraits<Pattern>::matchPatternImpl(std::declval<Value>(), std::declval<Pattern>()), 0)>>
-    : std::true_type
-{
-};
-template <typename Value, typename Pattern, std::enable_if_t<MatchFuncImplDefined<Value, Pattern>::value>* = nullptr>
-bool matchPattern(Value const& value, Pattern const& pattern)
+auto matchPattern(Value const& value, Pattern const& pattern) -> decltype(PatternTraits<Pattern>::matchPatternImpl(value, pattern))
 {
     return PatternTraits<Pattern>::matchPatternImpl(value, pattern);
 }
+
+// template <typename... Args>
+// bool matchPattern(Args&&...)
+// {
+//     return false;
+// }
 
 template <typename Pattern>
 void resetId(Pattern const& pattern)
@@ -106,20 +102,12 @@ auto pattern(First const& f, Patterns const&... ps)
 class WildCard{};
 constexpr WildCard _;
 
-template<typename, typename, typename = std::void_t<>>
-struct HasEqualT : std::false_type
-{};
-
-template<typename T1, typename T2>
-struct HasEqualT<T1, T2, std::void_t<decltype(std::declval<T1>() == std::declval<T2>())>> : std::true_type
-{};
-
 template <typename Pattern>
 class PatternTraits
 {
 public:
-    template <typename Value, typename std::enable_if_t<HasEqualT<Pattern, Value>::value, void>* = nullptr>
-    static bool matchPatternImpl(Value const& value, Pattern const& pattern)
+    template <typename Value>
+    static auto matchPatternImpl(Value const& value, Pattern const& pattern) -> decltype(pattern == value)
     {
         return pattern == value;
     }
@@ -169,7 +157,7 @@ class PatternTraits<Or<Patterns...>>
 {
 public:
     template <typename Value>
-    static bool matchPatternImpl(Value const& value, Or<Patterns...> const& orPat)
+    static auto matchPatternImpl(Value const& value, Or<Patterns...> const& orPat) -> decltype((::matchPattern(value, std::declval<Patterns>()) || ...))
     {
         return std::apply(
             [&value](Patterns const&... patterns)
@@ -215,7 +203,7 @@ class PatternTraits<Meet<Pred>>
 {
 public:
     template <typename Value>
-    static bool matchPatternImpl(Value const& value, Meet<Pred> const& meetPat)
+    static auto matchPatternImpl(Value const& value, Meet<Pred> const& meetPat) -> decltype(meetPat.predicate()(value))
     {
         return meetPat.predicate()(value);
     }
@@ -256,7 +244,7 @@ class PatternTraits<App<Unary, Pattern>>
 {
 public:
     template <typename Value>
-    static bool matchPatternImpl(Value const& value, App<Unary, Pattern> const& appPat)
+    static auto matchPatternImpl(Value const& value, App<Unary, Pattern> const& appPat) -> decltype(::matchPattern(std::invoke(appPat.unary(), value), appPat.pattern()))
     {
         return ::matchPattern(std::invoke(appPat.unary(), value), appPat.pattern());
     }
@@ -316,7 +304,7 @@ class PatternTraits<And<Patterns...>>
 {
 public:
     template <typename Value>
-    static bool matchPatternImpl(Value const& value, And<Patterns...> const& andPat)
+    static auto matchPatternImpl(Value const &value, And<Patterns...> const &andPat) -> decltype((::matchPattern(value, std::declval<Patterns>()) && ...))
     {
         return std::apply(
             [&value](Patterns const&... patterns)
@@ -362,7 +350,7 @@ class PatternTraits<Not<Pattern>>
 {
 public:
     template <typename Value>
-    static bool matchPatternImpl(Value const& value, Not<Pattern> const& notPat)
+    static auto matchPatternImpl(Value const& value, Not<Pattern> const& notPat) -> decltype(!::matchPattern(value, notPat.pattern()))
     {
         return !::matchPattern(value, notPat.pattern());
     }
@@ -375,25 +363,51 @@ public:
 template <typename... T>
 class Debug;
 
+template <bool own>
+class IdTrait;
+
+template <>
+class IdTrait<true>
+{
+public:
+    template <typename Ptr, typename Value>
+    static auto matchValueImpl(Ptr &ptr, Value const &value) -> decltype(ptr = std::make_unique<Value>(value), void())
+    {
+        ptr = std::make_unique<Value>(value);
+    }
+};
+
+template <>
+class IdTrait<false>
+{
+public:
+    template <typename Ptr, typename Value>
+    static auto matchValueImpl(Ptr &ptr, Value const &value) -> decltype(ptr.reset(&value), void())
+    {
+        ptr.reset(&value);
+    }
+};
+
+
 template <typename Type, bool own = true>
 class Id
 {
+    class NoDelete
+    {
+    public:
+        void operator()(Type const*){}
+    };
+    using PtrT = std::conditional_t<own, std::unique_ptr<Type const>, std::unique_ptr<Type const, NoDelete>>;
+    mutable std::shared_ptr<PtrT> mValue = std::make_shared<PtrT>();
 public:
     template <typename Value>
-    bool matchValue(Value const& value) const
+    auto matchValue(Value const& value) const -> decltype(**mValue == value, IdTrait<own>::matchValueImpl(*mValue, value), bool{})
     {
         if (*mValue)
         {
             return **mValue == value;
         }
-        if constexpr (own)
-        {
-            *mValue = std::make_unique<Value>(value);
-        }
-        else if constexpr (!own)
-        {
-            (*mValue).reset(&value);
-        }
+        IdTrait<own>::matchValueImpl(*mValue, value);
         return true;
     }
     void reset() const
@@ -409,13 +423,8 @@ public:
         return value();
     }
 private:
-    class NoDelete
-    {
-    public:
-        void operator()(Type const*){}
-    };
-    using PtrT = std::conditional_t<own, std::unique_ptr<Type const>, std::unique_ptr<Type const, NoDelete>>;
-    mutable std::shared_ptr<PtrT> mValue = std::make_shared<PtrT>();
+    template <typename P, typename Value>
+    auto matchValueImpl(P const& p, Value const& value) const;
 };
 
 template <typename Type>
@@ -426,7 +435,7 @@ class PatternTraits<Id<Type, own>>
 {
 public:
     template <typename Value>
-    static bool matchPatternImpl(Value const& value, Id<Type, own> const& idPat)
+    static auto matchPatternImpl(Value const& value, Id<Type, own> const& idPat) -> decltype(idPat.matchValue(value))
     {
         return idPat.matchValue(value);
     }
@@ -526,12 +535,14 @@ struct MatchFuncDefined<Value, Pattern, std::void_t<decltype(matchPattern(std::d
 {
 };
 
-template<typename... Args>
-inline constexpr bool test_v = MatchFuncDefined<Args...>::value;
+// template<typename... Args>
+template <typename Value, typename Pattern>
+inline constexpr bool test_v = MatchFuncDefined<Value, Pattern>::value;
+// inline constexpr bool test_v = std::void_t<decltype(matchPattern(std::declval<Value>(), std::declval<Pattern>()))>;
 
-static_assert(!test_v<char, std::string>);
-static_assert(test_v<std::string, std::string>);
-static_assert(!test_v<std::size_t, std::string>);
+// static_assert(!test_v<char, std::string>);
+// static_assert(test_v<std::string, std::string>);
+// static_assert(!test_v<std::size_t, std::string>);
 
 template <typename... Values, typename... Patterns>
 static bool trySegmentMatch(std::tuple<Values...> const& values, std::tuple<Patterns...> const& patterns)
@@ -648,7 +659,7 @@ class PatternTraits<Segment<Pattern>>
 {
 public:
     template <typename Value>
-    static bool matchPatternImpl(Value const& value, Segment<Pattern> const& segPat)
+    static auto matchPatternImpl(Value const& value, Segment<Pattern> const& segPat) -> decltype(::matchPattern(value, segPat.pattern()))
     {
         return ::matchPattern(value, segPat.pattern());
     }
@@ -684,7 +695,7 @@ class PatternTraits<PostCheck<Pattern, Pred>>
 {
 public:
     template <typename Value>
-    static bool matchPatternImpl(Value const& value, PostCheck<Pattern, Pred> const& postCheck)
+    static auto matchPatternImpl(Value const& value, PostCheck<Pattern, Pred> const& postCheck) -> decltype(::matchPattern(value, postCheck.pattern()) && postCheck.check())
     {
         return ::matchPattern(value, postCheck.pattern()) && postCheck.check();
     }

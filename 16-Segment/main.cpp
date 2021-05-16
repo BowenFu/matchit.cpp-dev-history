@@ -522,15 +522,14 @@ void test19()
             // This won't compile since we do compile-time check unless `Seg` is detected.
             // pattern(ds(_, std::string("123"), 3)) = []{ return 1; },
             // any containing ... / ... 3 ...
-            pattern(ds(seg(_), std::string("123"), 3)) = []{ return 1; },
+            // pattern(ds(seg(_), j, 3)) = []{ return 1; },
+            pattern(ds(seg(_), or_(j), 3)) = []{ return 1; },
             pattern(ds(seg(_), '/', seg(_), 3, seg(_))) = []{ return 8; },
-            // pattern(ds(_, '/', _, 3, _)) = []{ return 8; },
-            // pattern(ds(_, '/', _, _)) = []{ return 8; },
             pattern(_) = []{ return -1; }
         );
     };
-    testMatch(std::make_tuple('/', 2, 3), 8, matchFunc);
-    testMatch(std::make_tuple('/', std::string("123"), 3), 1, matchFunc);
+    testMatch(std::make_tuple('/', 2, 3), 1, matchFunc);
+    testMatch(std::make_tuple('/', std::string("123"), 3), 8, matchFunc);
     testMatch(std::make_tuple('[', '/', ']', 2, 2, 3, 3, 5), 8, matchFunc);
 }
 
