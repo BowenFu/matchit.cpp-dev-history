@@ -531,7 +531,16 @@ void test19()
     compare(matchPattern(std::make_tuple(3, 2, 3, 2, 3), ooo(_ > 0)), true);
     compare(matchPattern(std::make_tuple(3, 2, -3, 2, 3), ooo(_ > 0)), false);
     compare(matchPattern(std::make_tuple(3, 2, 3, 2, 3), ooo(not_(3))), false);
-    compare(matchPattern(std::make_tuple(3, 2, -3, 2, 3), ooo(not_(4))), true);
+    compare(matchPattern(std::make_tuple(2, 2, 2, 2, 3), ooo(not_(3))), false);
+    compare(matchPattern(std::make_tuple(3, 2, 2, 2, 2), ooo(not_(3))), false);
+    compare(matchPattern(std::make_tuple(2, 2, 2, 2, 2), ooo(not_(3))), true);
+    {
+        Id<int> i;
+        compare(matchPattern(std::make_tuple(3, 2, 2, 3, 3), ds(ooo(i), ooo(2), ooo(i))), true);
+        // Id<int> n;
+        // TODO, match on segment variable length with oon(pat, n)
+        // compare(matchPattern(std::make_tuple(3, 2, 2, 3, 3), ds(oon(3, n), ooo(2), oon(3, n))), true);
+    }
 }
 
 void test20()
@@ -549,7 +558,8 @@ void test20()
                     // _,
                    1,
                     ds(
-                        '^',
+                        // cannot understand why we need this cast to match the case.
+                        static_cast<int>('^'),
                         ds(
                             's',
                             x),
@@ -563,7 +573,7 @@ void test20()
                     )) = [] { return 1; },
             // why this one fail to match?
             pattern(
-                ds('+', ooo(_), 1, ds('^', ds('s', x), 2))) = [] { return 9; },
+                ds('+', ooo(_), 1, ds('^', ds(static_cast<int>('s'), x), 2))) = [] { return 9; },
             pattern(
                 ds('+', ooo(_), 1, ds('^', ds('s', x), ooo(_), 2))) = [] { return 8; },
             pattern(
@@ -596,6 +606,27 @@ void test20()
         1,
         matchFunc
     );
+    Id<char> x;
+    compare(matchPattern(
+                std::make_tuple('+', 1, std::make_tuple('^', std::make_tuple('s', y), 2)),
+                ds('+', 1, ds('^', ds(_, x), 2))),
+            true);
+    compare(matchPattern(
+                std::make_tuple('+', 1, std::make_tuple('^', std::make_tuple('s', y), 2)),
+                ds('+', 1, ds('^', ds('s', y), 2))),
+            true);
+    // compare(matchPattern(
+    //             std::make_tuple('+', 1, std::make_tuple('^', std::make_tuple('s', y), 2)),
+    //             ds('+', 1, ds('^', ds('s', x), 2))),
+    //         true);
+    static_assert(MatchFuncDefinedV<std::tuple<std::tuple<char, char>, int>, Ds<Ds<char, Id<char, true> >, int>>);
+    static_assert(MatchFuncDefinedV<std::tuple<std::string, std::tuple<char, char>, int>, Ds<std::string, Ds<char, Id<char, true> >, int>>);
+    static_assert(MatchFuncDefinedV<std::tuple<bool, std::tuple<char, char>, int>, Ds<bool, Ds<char, Id<char, true> >, int>>);
+    static_assert(MatchFuncDefinedV<std::tuple<int, std::tuple<char, char>, int>, Ds<int, Ds<char, Id<char, true> >, int>>);
+    static_assert(MatchFuncDefinedV<std::tuple<int, std::tuple<char, char>, char>, Ds<int, Ds<char, Id<char, true> >, char>>);
+    static_assert(MatchFuncDefinedV<std::tuple<char, std::tuple<char, char>, char>, Ds<char, Ds<char, Id<char, true> >, char>>);
+    // static_assert(MatchFuncDefinedV<std::tuple<char, std::tuple<char, char>, int>, Ds<char, Ds<char, Id<char, true> >, int>>);
+    static_assert(MatchFuncDefinedV<std::tuple<char, std::tuple<char, char>>, Ds<char, Ds<char, Id<char, true> >>>);
     assert(matchPattern(2, 2));
 }
 

@@ -18,7 +18,8 @@ template <typename Pattern>
 class PatternTraits;
 
 template <typename Value, typename Pattern>
-auto matchPattern(Value const &value, Pattern const &pattern) -> decltype(PatternTraits<Pattern>::matchPatternImpl(value, pattern))
+auto matchPattern(Value const &value, Pattern const &pattern)
+-> decltype(PatternTraits<Pattern>::matchPatternImpl(value, pattern))
 {
     return PatternTraits<Pattern>::matchPatternImpl(value, pattern);
 }
@@ -367,7 +368,7 @@ public:
     }
 };
 
-template <typename... T>
+template <typename... Ts>
 class Debug;
 
 template <bool own>
@@ -540,10 +541,11 @@ auto takeImpl(Tuple &&t, std::index_sequence<I...>)
 }
 
 template <std::size_t N, typename Tuple>
-auto take(Tuple &&t) -> decltype(
-    takeImpl(
-        std::forward<Tuple>(t),
-        std::make_index_sequence<N>{}))
+auto take(Tuple &&t)
+// -> decltype(
+    // takeImpl(
+    //     std::forward<Tuple>(t),
+    //     std::make_index_sequence<N>{}))
 {
     return takeImpl(
         std::forward<Tuple>(t),
@@ -560,10 +562,11 @@ auto dropImpl(Tuple &&t, std::index_sequence<I...>)
 }
 
 template <std::size_t N, typename Tuple>
-auto drop(Tuple &&t) -> decltype(
-    dropImpl<N>(
-        std::forward<Tuple>(t),
-        std::make_index_sequence<std::tuple_size_v<std::remove_reference_t<Tuple> > - N>{}))
+auto drop(Tuple &&t)
+// -> decltype(
+//     dropImpl<N>(
+//         std::forward<Tuple>(t),
+//         std::make_index_sequence<std::tuple_size_v<std::remove_reference_t<Tuple> > - N>{}))
 {
     return dropImpl<N>(
         std::forward<Tuple>(t),
@@ -591,9 +594,11 @@ static_assert(!MatchFuncDefinedV<char, std::string>);
 static_assert(MatchFuncDefinedV<std::string, std::string>);
 static_assert(!MatchFuncDefinedV<std::size_t, std::string>);
 static_assert(MatchFuncDefinedV<char, char>);
+static_assert(MatchFuncDefinedV<int, char>);
+static_assert(MatchFuncDefinedV<char, int>);
 
-template <typename... Values, typename... Patterns>
-static bool tupleMatchImpl(std::tuple<Values...> const &values, std::tuple<Patterns...> const &patterns);
+template <typename ValuesTuple, typename PatternsTuple>
+static bool tupleMatchImpl(ValuesTuple const &values, PatternsTuple const &patterns);
 
 template <typename... Patterns>
 class PatternTraits<Ds<Patterns...> >
@@ -642,23 +647,32 @@ static_assert(MatchFuncDefinedV<std::tuple<int, std::tuple<int, int>, int>,
                                 Ds<int, Ds<int, Id<int, true> >, int>>);
 // static_assert(MatchFuncDefinedV<const std::tuple<char, std::tuple<char, char>, int> &,
 //                                 const Ds<char, Ds<char, Id<char, true> >, int> &>);
+static_assert(MatchFuncDefinedV<std::tuple<char, std::tuple<char, char>, int>, Ds<char, Ds<char, char>, int>>);
+static_assert(MatchFuncDefinedV<std::tuple<char, char>, Ds<char, Id<char, true> >>);
+static_assert(MatchFuncDefinedV<std::tuple<int, std::tuple<char, char>, int>, Ds<int, Ds<char, Id<char, true> >, int>>);
+// cannot understand why char to char mismatch, int to char match.
+// static_assert(MatchFuncDefinedV<std::tuple<char, std::tuple<char, char>, int>, Ds<char, Ds<char, Id<char, true> >, int>>);
+static_assert(MatchFuncDefinedV<std::tuple<char, char>, Ds<char, Id<char, true> >>);
+static_assert(MatchFuncDefinedV<std::tuple<char, std::tuple<char, char>, int>, Ds<char, Ds<int, Id<char, true> >, int>>);
+static_assert(MatchFuncDefinedV<std::tuple<char, std::tuple<char, char>, int>, Ds<char, Ds<WildCard, Id<char, true> >, int>>);
+static_assert(MatchFuncDefinedV<char, char>);
 
-template <typename... Values, typename... Patterns>
-static bool tryOooMatch(std::tuple<Values...> const &values, std::tuple<Patterns...> const &patterns)
+template <typename ValuesTuple, typename PatternsTuple>
+static bool tryOooMatch(ValuesTuple const &values, PatternsTuple const &patterns)
 {
     // std::cout << "tryOooMatch " << sizeof...(Values) << ", " << sizeof...(Patterns) << std::endl;
-    if constexpr (sizeof...(Patterns) == 0)
+    if constexpr (std::tuple_size_v<PatternsTuple> == 0)
     {
-        return sizeof...(Values) == 0;
+        return std::tuple_size_v<ValuesTuple> == 0;
     }
-    else if constexpr (isOooV<std::tuple_element_t<0, std::tuple<Patterns...> > >)
+    else if constexpr (isOooV<std::tuple_element_t<0, PatternsTuple> >)
     {
-        auto index = std::make_index_sequence<sizeof...(Values) + 1>{};
+        auto index = std::make_index_sequence<std::tuple_size_v<ValuesTuple> + 1>{};
         return tryOooMatchImpl(values, patterns, index);
     }
-    else if constexpr (sizeof...(Values) >= 1)
+    else if constexpr (std::tuple_size_v<ValuesTuple> >= 1)
     {
-        if constexpr (MatchFuncDefinedV<std::tuple_element_t<0, std::tuple<Values...> >, std::tuple_element_t<0, std::tuple<Patterns...> > >)
+        if constexpr (MatchFuncDefinedV<std::tuple_element_t<0, ValuesTuple>, std::tuple_element_t<0, PatternsTuple> >)
         {
             return ::matchPattern(std::get<0>(values), std::get<0>(patterns)) && tryOooMatch(drop<1>(values), drop<1>(patterns));
         }
@@ -670,8 +684,8 @@ class OooMatchBreak : public std::exception
 {
 };
 
-template < std::size_t I, typename... Values, typename... Patterns>
-bool tryOooMatchImplHelper(std::tuple<Values...> const &values, std::tuple<Patterns...> const &patterns)
+template < std::size_t I, typename ValuesTuple, typename PatternsTuple>
+bool tryOooMatchImplHelper(ValuesTuple const &values, PatternsTuple const &patterns)
 {
     using std::get;
     // FIXME: cache matchPattern for ooo
@@ -681,11 +695,11 @@ bool tryOooMatchImplHelper(std::tuple<Values...> const &values, std::tuple<Patte
     }
     else if constexpr (I > 0)
     {
-        if constexpr (MatchFuncDefinedV<decltype(take<I>(values)), std::tuple_element_t<0, std::tuple<Patterns...> > >)
+        if constexpr (MatchFuncDefinedV<decltype(take<I>(values)), std::tuple_element_t<0, PatternsTuple> >)
         {
             // std::cout << "values num: " << sizeof...(Values) << "\t index: " << I << "\tpatterns num: " << sizeof...(Patterns) << std::endl;
             // return ((::matchPattern(take<I>(values), get<0>(patterns)) && tryOooMatch(drop<I>(values), drop<1>(patterns))));
-            if (!PatternTraits<std::tuple_element_t<0, std::tuple<Patterns...> > >::matchPatternImplSingle(get<I - 1>(values), get<0>(patterns)))
+            if (!PatternTraits<std::tuple_element_t<0, PatternsTuple> >::matchPatternImplSingle(get<I - 1>(values), get<0>(patterns)))
             {
                 throw OooMatchBreak();
             }
@@ -700,8 +714,8 @@ bool tryOooMatchImplHelper(std::tuple<Values...> const &values, std::tuple<Patte
     throw OooMatchBreak();
 }
 
-template <typename... Values, typename... Patterns, std::size_t... I>
-bool tryOooMatchImpl(std::tuple<Values...> const &values, std::tuple<Patterns...> const &patterns, std::index_sequence<I...>)
+template <typename ValuesTuple, typename PatternsTuple, std::size_t... I>
+bool tryOooMatchImpl(ValuesTuple const &values, PatternsTuple const &patterns, std::index_sequence<I...>)
 {
     try
     {
@@ -713,8 +727,8 @@ bool tryOooMatchImpl(std::tuple<Values...> const &values, std::tuple<Patterns...
     }
 }
 
-template <typename... Values, typename... Patterns>
-static bool tupleMatchImpl(std::tuple<Values...> const &values, std::tuple<Patterns...> const &patterns)
+template <typename ValuesTuple, typename PatternsTuple>
+static bool tupleMatchImpl(ValuesTuple const &values, PatternsTuple const &patterns)
 {
     // std::cout << "tupleMatchImpl " << sizeof...(Values) << ", " << sizeof...(Patterns) << std::endl;
     constexpr bool KALLOW_TYPE_MISMATCH_FOR_NON_OOO = false;
@@ -724,15 +738,15 @@ static bool tupleMatchImpl(std::tuple<Values...> const &values, std::tuple<Patte
     }
     else if constexpr (true)
     {
-        if constexpr (sizeof...(Patterns) == 0)
+        if constexpr (std::tuple_size_v<PatternsTuple> == 0)
         {
-            return sizeof...(Values) == 0;
+            return std::tuple_size_v<ValuesTuple> == 0;
         }
-        else if constexpr (isOooV<std::tuple_element_t<0, std::tuple<Patterns...> > >)
+        else if constexpr (isOooV<std::tuple_element_t<0, PatternsTuple > >)
         {
             return tryOooMatch(values, patterns);
         }
-        else if constexpr (sizeof...(Values) >= 1)
+        else if constexpr (std::tuple_size_v<ValuesTuple> >= 1)
         {
             return ::matchPattern(std::get<0>(values), std::get<0>(patterns)) && tupleMatchImpl(drop<1>(values), drop<1>(patterns));
         }
