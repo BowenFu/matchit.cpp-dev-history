@@ -550,30 +550,9 @@ void test20()
         // Id<int> i;
         int i = 2;
         return match(input)(
-            // `(+ ... (expt (sin x) 2) ... (expt (cos x) 2) ...)`
-            pattern(
-                ds(
-                    '+',
-                    ooo(_),
-                    // _,
-                   1,
-                    ds(
-                        // cannot understand why we need this cast to match the case.
-                        static_cast<int>('^'),
-                        ds(
-                            's',
-                            x),
-                        2)
-                    // ,ds(
-                    //     std::string("expt"),
-                    //     ds(
-                    //         std::string("cos"),
-                    //         x),
-                    //     2)
-                    )) = [] { return 1; },
             // why this one fail to match?
             pattern(
-                ds('+', ooo(_), 1, ds('^', ds(static_cast<int>('s'), x), 2))) = [] { return 9; },
+                ds('+', ooo(_), 1, ds('^', ds('s', x), 2))) = [] { return 9; },
             pattern(
                 ds('+', ooo(_), 1, ds('^', ds('s', x), ooo(_), 2))) = [] { return 8; },
             pattern(
@@ -590,23 +569,18 @@ void test20()
                 ds('+', ooo(_))) = [] { return 2; },
             pattern(_) = [] { return -1; });
     };
-    char y ='y';
-    testMatch(
-        std::make_tuple(
-            '+',
-            1,
-            // std::make_tuple("expt", y, 2),
-            std::make_tuple('^', std::make_tuple('s', y), 2)
-            // ,
-            // std::make_tuple("expt", y, 3),
-            // std::make_tuple("expt", y, 4),
-            // std::make_tuple("expt", std::make_tuple("cos", y), 2)
-            // std::make_tuple("expt", std::make_tuple("sin", y), 3)
-            ),
-        1,
-        matchFunc
-    );
     Id<char> x;
+    char y ='y';
+    compare(matchPattern(
+                std::make_tuple('+',
+                                std::make_tuple('^',
+                                                y, 2),
+                                std::make_tuple('^',
+                                                y, 2)),
+                ds('+',
+                   ds('^', x, 2),
+                   ds('^', x, 2))),
+            true);
     compare(matchPattern(
                 std::make_tuple('+', 1, std::make_tuple('^', std::make_tuple('s', y), 2)),
                 ds('+', 1, ds('^', ds(_, x), 2))),
@@ -615,63 +589,36 @@ void test20()
                 std::make_tuple('+', 1, std::make_tuple('^', std::make_tuple('s', y), 2)),
                 ds('+', 1, ds('^', ds('s', y), 2))),
             true);
-    // compare(matchPattern(
-    //             std::make_tuple('+', 1, std::make_tuple('^', std::make_tuple('s', y), 2)),
-    //             ds('+', 1, ds('^', ds('s', x), 2))),
-    //         true);
+    compare(matchPattern(
+                std::make_tuple('+', 1, std::make_tuple('^', std::make_tuple('s', y), 2)),
+                ds('+', 1, ds('^', ds('s', x), 2))),
+            true);
     static_assert(MatchFuncDefinedV<std::tuple<std::tuple<char, char>, int>, Ds<Ds<char, Id<char, true> >, int>>);
     static_assert(MatchFuncDefinedV<std::tuple<std::string, std::tuple<char, char>, int>, Ds<std::string, Ds<char, Id<char, true> >, int>>);
     static_assert(MatchFuncDefinedV<std::tuple<bool, std::tuple<char, char>, int>, Ds<bool, Ds<char, Id<char, true> >, int>>);
     static_assert(MatchFuncDefinedV<std::tuple<int, std::tuple<char, char>, int>, Ds<int, Ds<char, Id<char, true> >, int>>);
     static_assert(MatchFuncDefinedV<std::tuple<int, std::tuple<char, char>, char>, Ds<int, Ds<char, Id<char, true> >, char>>);
     static_assert(MatchFuncDefinedV<std::tuple<char, std::tuple<char, char>, char>, Ds<char, Ds<char, Id<char, true> >, char>>);
-    // static_assert(MatchFuncDefinedV<std::tuple<char, std::tuple<char, char>, int>, Ds<char, Ds<char, Id<char, true> >, int>>);
+    static_assert(MatchFuncDefinedV<std::tuple<char, std::tuple<char, char>, int>, Ds<char, Ds<char, Id<char, true> >, int>>);
     static_assert(MatchFuncDefinedV<std::tuple<char, std::tuple<char, char>>, Ds<char, Ds<char, Id<char, true> >>>);
     assert(matchPattern(2, 2));
 }
 
-// void test21()
-// {
-//     auto const matchFunc = [](auto &&input) {
-//         Id<std::string> x;
-//         return match(input)(
-//             // `(+ ... (expt (sin x) 2) ... (expt (cos x) 2) ...)`
-//             pattern(
-//                 ds(
-//                     std::string("+"),
-//                     ooo(_),
-//                     ds(
-//                         std::string("expt"),
-//                         ds(
-//                             std::string("sin"),
-//                             x),
-//                         2),
-//                     ooo(_),
-//                     ds(
-//                         std::string("expt"),
-//                         ds(
-//                             std::string("cos"),
-//                             x),
-//                         2),
-//                     ooo(_))) = [] { return 1; },
-//             pattern(_) = [] { return -1; });
-//     };
-//     std::string y("y");
-//     testMatch(
-//         std::make_tuple(
-//             "+",
-//             123,
-//             // std::make_tuple("expt", y, 2),
-//             // std::make_tuple("expt", std::make_tuple("sin", y), 2),
-//             // std::make_tuple("expt", y, 3),
-//             // std::make_tuple("expt", y, 4),
-//             // std::make_tuple("expt", std::make_tuple("cos", y), 2),
-//             std::make_tuple("expt", std::make_tuple("sin", y), 3)
-//             ),
-//         1,
-//         matchFunc
-//     );
-// }
+void test21()
+{
+    Id<std::string> strA;
+    RefId<std::string> strB;
+    compare(matchPattern(
+                std::string("abc"),
+                strA),
+            true);
+    compare(matchPattern(
+                std::string("abc"),
+                strB),
+            true);
+    auto A = std::make_tuple("string", 123);
+    assert(drop<0>(A) == A);
+}
 
 int main()
 {
@@ -695,5 +642,6 @@ int main()
     test18();
     test19();
     test20();
+    test21();
     return 0;
 }

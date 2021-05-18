@@ -109,7 +109,8 @@ class PatternTraits
 {
 public:
     template <typename Value>
-    static auto matchPatternImpl(Value const &value, Pattern const &pattern) -> decltype(pattern == value)
+    static auto matchPatternImpl(Value const &value, Pattern const &pattern)
+    -> decltype(pattern == value)
     {
         return pattern == value;
     }
@@ -162,7 +163,8 @@ class PatternTraits<Or<Patterns...> >
 {
 public:
     template <typename Value>
-    static auto matchPatternImpl(Value const &value, Or<Patterns...> const &orPat) -> decltype((::matchPattern(value, std::declval<Patterns>()) || ...))
+    static auto matchPatternImpl(Value const &value, Or<Patterns...> const &orPat)
+    -> decltype((::matchPattern(value, std::declval<Patterns>()) || ...))
     {
         return std::apply(
             [&value](Patterns const &...patterns) {
@@ -208,7 +210,8 @@ class PatternTraits<Meet<Pred> >
 {
 public:
     template <typename Value>
-    static auto matchPatternImpl(Value const &value, Meet<Pred> const &meetPat) -> decltype(meetPat.predicate()(value))
+    static auto matchPatternImpl(Value const &value, Meet<Pred> const &meetPat)
+    -> decltype(meetPat.predicate()(value))
     {
         return meetPat.predicate()(value);
     }
@@ -250,7 +253,8 @@ class PatternTraits<App<Unary, Pattern> >
 {
 public:
     template <typename Value>
-    static auto matchPatternImpl(Value const &value, App<Unary, Pattern> const &appPat) -> decltype(::matchPattern(std::invoke(appPat.unary(), value), appPat.pattern()))
+    static auto matchPatternImpl(Value const &value, App<Unary, Pattern> const &appPat)
+    -> decltype(::matchPattern(std::invoke(appPat.unary(), value), appPat.pattern()))
     {
         return ::matchPattern(std::invoke(appPat.unary(), value), appPat.pattern());
     }
@@ -312,7 +316,8 @@ class PatternTraits<And<Patterns...> >
 {
 public:
     template <typename Value>
-    static auto matchPatternImpl(Value const &value, And<Patterns...> const &andPat) -> decltype((::matchPattern(value, std::declval<Patterns>()) && ...))
+    static auto matchPatternImpl(Value const &value, And<Patterns...> const &andPat)
+    -> decltype((::matchPattern(value, std::declval<Patterns>()) && ...))
     {
         return std::apply(
             [&value](Patterns const &...patterns) {
@@ -358,7 +363,8 @@ class PatternTraits<Not<Pattern> >
 {
 public:
     template <typename Value>
-    static auto matchPatternImpl(Value const &value, Not<Pattern> const &notPat) -> decltype(!::matchPattern(value, notPat.pattern()))
+    static auto matchPatternImpl(Value const &value, Not<Pattern> const &notPat)
+    -> decltype(!::matchPattern(value, notPat.pattern()))
     {
         return !::matchPattern(value, notPat.pattern());
     }
@@ -378,10 +384,11 @@ template <>
 class IdTrait<true>
 {
 public:
-    template <typename Ptr, typename Value>
-    static auto matchValueImpl(Ptr &ptr, Value const &value) -> decltype(ptr = std::make_unique<Value>(value), void())
+    template <typename Type, typename Value>
+    static auto matchValueImpl(std::unique_ptr<Type> &ptr, Value const &value)
+    -> decltype(ptr = std::make_unique<Type>(value), void())
     {
-        ptr = std::make_unique<Value>(value);
+        ptr = std::make_unique<Type>(value);
     }
 };
 
@@ -390,7 +397,8 @@ class IdTrait<false>
 {
 public:
     template <typename Ptr, typename Value>
-    static auto matchValueImpl(Ptr &ptr, Value const &value) -> decltype(ptr.reset(&value), void())
+    static auto matchValueImpl(Ptr &ptr, Value const &value)
+    -> decltype(ptr.reset(&value), void())
     {
         ptr.reset(&value);
     }
@@ -409,7 +417,8 @@ class Id
 
 public:
     template <typename Value>
-    auto matchValue(Value const &value) const -> decltype(**mValue == value, IdTrait<own>::matchValueImpl(*mValue, value), bool{})
+    auto matchValue(Value const &value) const
+    -> decltype(**mValue == value, IdTrait<own>::matchValueImpl(*mValue, value), bool{})
     {
         // if constexpr (std::is_same_v<Value, int>)
         // {
@@ -448,7 +457,8 @@ class PatternTraits<Id<Type, own> >
 {
 public:
     template <typename Value>
-    static auto matchPatternImpl(Value const &value, Id<Type, own> const &idPat) -> decltype(idPat.matchValue(value))
+    static auto matchPatternImpl(Value const &value, Id<Type, own> const &idPat)
+    -> decltype(idPat.matchValue(value))
     {
         return idPat.matchValue(value);
     }
@@ -543,9 +553,9 @@ auto takeImpl(Tuple &&t, std::index_sequence<I...>)
 template <std::size_t N, typename Tuple>
 auto take(Tuple &&t)
 // -> decltype(
-    // takeImpl(
-    //     std::forward<Tuple>(t),
-    //     std::make_index_sequence<N>{}))
+//     takeImpl(
+//         std::forward<Tuple>(t),
+//         std::make_index_sequence<N>{}))
 {
     return takeImpl(
         std::forward<Tuple>(t),
@@ -587,16 +597,6 @@ struct MatchFuncDefined<Value, Pattern, std::void_t<decltype(matchPattern(std::d
 template <typename Value, typename Pattern>
 inline constexpr bool MatchFuncDefinedV = MatchFuncDefined<Value, Pattern>::value;
 
-static_assert(!MatchFuncDefinedV<const int &, const Ds<char, Ds<char, Id<char, true> >, int> &>);
-static_assert(!MatchFuncDefinedV<int, Ds<std::string, Ds<std::string, Id<std::string, true> >, int>>);
-
-static_assert(!MatchFuncDefinedV<char, std::string>);
-static_assert(MatchFuncDefinedV<std::string, std::string>);
-static_assert(!MatchFuncDefinedV<std::size_t, std::string>);
-static_assert(MatchFuncDefinedV<char, char>);
-static_assert(MatchFuncDefinedV<int, char>);
-static_assert(MatchFuncDefinedV<char, int>);
-
 template <typename ValuesTuple, typename PatternsTuple>
 static bool tupleMatchImpl(ValuesTuple const &values, PatternsTuple const &patterns);
 
@@ -621,41 +621,6 @@ public:
 
 private:
 };
-
-static_assert(MatchFuncDefinedV<std::tuple<char>, Ds<char> >);
-static_assert(MatchFuncDefinedV<std::tuple<char, int, std::tuple<char, int> >,
-                                 Ds<char, int, Ds<char, int> > >);
-static_assert(MatchFuncDefinedV<std::tuple<char, int, std::tuple<char, std::tuple<char, char>, int> >,
-                                 Ds<char, int, Ds<char, Ds<char, char>, int> > >);
-static_assert(MatchFuncDefinedV<std::tuple<char, int, std::tuple<char, std::tuple<char, char>, int> >,
-                                 Ds<char, int, Ds<char, Ds<char, Id<char, true> >, int> > >);
-static_assert(MatchFuncDefinedV<const std::tuple<char, std::tuple<char, char>, int> &,
-                                const Ds<char, Ds<char, char>, int> &>);
-static_assert(MatchFuncDefinedV<char&,
-                                Id<char, true>>);
-static_assert(MatchFuncDefinedV<const std::tuple<char, char> &,
-                                const Ds<char, Id<char, true> > &>);
-static_assert(MatchFuncDefinedV<const std::tuple<char, std::tuple<char, char>> &,
-                                const Ds<char, Ds<char, Id<char, true> >> &>);
-static_assert(MatchFuncDefinedV<const std::tuple<std::tuple<char, char>, int> &,
-                                const Ds<Ds<char, Id<char, true> >, int> &>);
-static_assert(MatchFuncDefinedV<const std::tuple<int, std::tuple<char, char>, int> &,
-                                const Ds<int, Ds<char, Id<char, true> >, int> &>);
-static_assert(MatchFuncDefinedV<const std::tuple<char, std::tuple<char, char>, char> &,
-                                const Ds<char, Ds<char, Id<char, true> >, char> &>);
-static_assert(MatchFuncDefinedV<std::tuple<int, std::tuple<int, int>, int>,
-                                Ds<int, Ds<int, Id<int, true> >, int>>);
-// static_assert(MatchFuncDefinedV<const std::tuple<char, std::tuple<char, char>, int> &,
-//                                 const Ds<char, Ds<char, Id<char, true> >, int> &>);
-static_assert(MatchFuncDefinedV<std::tuple<char, std::tuple<char, char>, int>, Ds<char, Ds<char, char>, int>>);
-static_assert(MatchFuncDefinedV<std::tuple<char, char>, Ds<char, Id<char, true> >>);
-static_assert(MatchFuncDefinedV<std::tuple<int, std::tuple<char, char>, int>, Ds<int, Ds<char, Id<char, true> >, int>>);
-// cannot understand why char to char mismatch, int to char match.
-// static_assert(MatchFuncDefinedV<std::tuple<char, std::tuple<char, char>, int>, Ds<char, Ds<char, Id<char, true> >, int>>);
-static_assert(MatchFuncDefinedV<std::tuple<char, char>, Ds<char, Id<char, true> >>);
-static_assert(MatchFuncDefinedV<std::tuple<char, std::tuple<char, char>, int>, Ds<char, Ds<int, Id<char, true> >, int>>);
-static_assert(MatchFuncDefinedV<std::tuple<char, std::tuple<char, char>, int>, Ds<char, Ds<WildCard, Id<char, true> >, int>>);
-static_assert(MatchFuncDefinedV<char, char>);
 
 template <typename ValuesTuple, typename PatternsTuple>
 static bool tryOooMatch(ValuesTuple const &values, PatternsTuple const &patterns)
@@ -782,7 +747,8 @@ class PatternTraits<Ooo<Pattern> >
 {
 public:
     template <typename... Values>
-    static auto matchPatternImpl(std::tuple<Values...> const &valueTuple, Ooo<Pattern> const &oooPat) -> decltype((::matchPattern(std::declval<Values>(), oooPat.pattern()) && ...))
+    static auto matchPatternImpl(std::tuple<Values...> const &valueTuple, Ooo<Pattern> const &oooPat)
+    -> decltype((::matchPattern(std::declval<Values>(), oooPat.pattern()) && ...))
     {
         return std::apply(
             [&oooPat](Values const &...values) {
@@ -800,7 +766,8 @@ public:
             valueTuple);
     }
     template <typename Value>
-    static auto matchPatternImplSingle(Value const &value, Ooo<Pattern> const &oooPat) -> decltype(::matchPattern(value, oooPat.pattern()))
+    static auto matchPatternImplSingle(Value const &value, Ooo<Pattern> const &oooPat)
+    -> decltype(::matchPattern(value, oooPat.pattern()))
     {
         return ::matchPattern(value, oooPat.pattern());
     }
@@ -837,7 +804,8 @@ class PatternTraits<PostCheck<Pattern, Pred> >
 {
 public:
     template <typename Value>
-    static auto matchPatternImpl(Value const &value, PostCheck<Pattern, Pred> const &postCheck) -> decltype(::matchPattern(value, postCheck.pattern()) && postCheck.check())
+    static auto matchPatternImpl(Value const &value, PostCheck<Pattern, Pred> const &postCheck)
+    -> decltype(::matchPattern(value, postCheck.pattern()) && postCheck.check())
     {
         return ::matchPattern(value, postCheck.pattern()) && postCheck.check();
     }
@@ -846,5 +814,62 @@ public:
         ::resetId(postCheck.pattern());
     }
 };
+
+// static_assert(!MatchFuncDefinedV<const int &, const Ds<char, Ds<char, Id<char, true> >, int> &>);
+// static_assert(!MatchFuncDefinedV<int, Ds<std::string, Ds<std::string, Id<std::string, true> >, int>>);
+static_assert(!MatchFuncDefinedV<char, std::string>);
+// static_assert(!MatchFuncDefinedV<char, Id<std::string>>);
+static_assert(!MatchFuncDefinedV<std::size_t, std::string>);
+
+static_assert(MatchFuncDefinedV<std::string, std::string>);
+static_assert(MatchFuncDefinedV<char, char>);
+static_assert(MatchFuncDefinedV<int, char>);
+static_assert(MatchFuncDefinedV<char, int>);
+
+static_assert(MatchFuncDefinedV<std::tuple<char>, Ds<char> >);
+static_assert(MatchFuncDefinedV<std::tuple<char, int, std::tuple<char, int> >,
+                                 Ds<char, int, Ds<char, int> > >);
+static_assert(MatchFuncDefinedV<std::tuple<char, int, std::tuple<char, std::tuple<char, char>, int> >,
+                                 Ds<char, int, Ds<char, Ds<char, char>, int> > >);
+static_assert(MatchFuncDefinedV<std::tuple<char, int, std::tuple<char, std::tuple<char, char>, int> >,
+                                 Ds<char, int, Ds<char, Ds<char, Id<char, true> >, int> > >);
+static_assert(MatchFuncDefinedV<const std::tuple<char, std::tuple<char, char>, int> &,
+                                const Ds<char, Ds<char, char>, int> &>);
+static_assert(MatchFuncDefinedV<char&,
+                                Id<char, true>>);
+static_assert(MatchFuncDefinedV<const std::tuple<char, char> &,
+                                const Ds<char, Id<char, true> > &>);
+static_assert(MatchFuncDefinedV<const std::tuple<char, std::tuple<char, char>> &,
+                                const Ds<char, Ds<char, Id<char, true> >> &>);
+static_assert(MatchFuncDefinedV<const std::tuple<std::tuple<char, char>, int> &,
+                                const Ds<Ds<char, Id<char, true> >, int> &>);
+static_assert(MatchFuncDefinedV<const std::tuple<int, std::tuple<char, char>, int> &,
+                                const Ds<int, Ds<char, Id<char, true> >, int> &>);
+static_assert(MatchFuncDefinedV<const std::tuple<char, std::tuple<char, char>, char> &,
+                                const Ds<char, Ds<char, Id<char, true> >, char> &>);
+static_assert(MatchFuncDefinedV<std::tuple<int, std::tuple<int, int>, int>,
+                                Ds<int, Ds<int, Id<int, true> >, int>>);
+static_assert(MatchFuncDefinedV<const std::tuple<char, std::tuple<char, char>, int> &,
+                                const Ds<char, Ds<char, Id<char, true> >, int> &>);
+static_assert(MatchFuncDefinedV<std::tuple<char, std::tuple<char, char>, int>, Ds<char, Ds<char, char>, int>>);
+static_assert(MatchFuncDefinedV<std::tuple<char, char>, Ds<char, Id<char, true> >>);
+static_assert(MatchFuncDefinedV<std::tuple<int, std::tuple<char, char>, int>, Ds<int, Ds<char, Id<char, true> >, int>>);
+// cannot understand why char to char mismatch, int to char match.
+static_assert(MatchFuncDefinedV<std::tuple<char, std::tuple<char, char>,  int64_t>, Ds<char, Ds<char, Id<char, true> >, int64_t>>);
+static_assert(MatchFuncDefinedV<std::tuple<char, std::tuple<char, char>,  long>, Ds<char, Ds<char, Id<char, true> >, long>>);
+static_assert(MatchFuncDefinedV<std::tuple<char, std::tuple<char, char>,  unsigned>, Ds<char, Ds<char, Id<char, true> >, unsigned>>);
+static_assert(MatchFuncDefinedV<std::tuple<char, std::tuple<char, char>, int>, Ds<char, Ds<char, Id<char, true> >, int>>);
+static_assert(MatchFuncDefinedV<std::tuple<char, std::tuple<char, char>, int>, Ds<char, Ds<Id<char, true> >, int>>);
+static_assert(MatchFuncDefinedV<std::tuple<char, std::tuple<char, char>, int>, Ds<char, Ds<char, RefId<char> >, int>>);
+static_assert(MatchFuncDefinedV<std::tuple<char, std::tuple<char, char>, int>, Ds<char, Ds<char, Id<char, false> >, int>>);
+static_assert(MatchFuncDefinedV<std::tuple<char, std::tuple<char, char>,  int>, Ds<char, Ds<char, Id<char, true> >, unsigned>>);
+static_assert(MatchFuncDefinedV<std::tuple<char, std::tuple<char, char>, int>, Ds<char, Ds<char, Id<char, true> >, WildCard>>);
+static_assert(MatchFuncDefinedV<std::tuple<char, std::tuple<char, char>, int>, Ds<char, Ds<char, Id<char, true> >, char>>);
+static_assert(MatchFuncDefinedV<std::tuple<char, std::tuple<char, char>, char>, Ds<char, Ds<char, Id<char, true> >, char>>);
+static_assert(MatchFuncDefinedV<std::tuple<std::tuple<char, std::tuple<char, char>, int>>, Ds<Ds<char, Ds<char, Id<char, true> >, int>>>);
+static_assert(MatchFuncDefinedV<std::tuple<char, char>, Ds<char, Id<char, true> >>);
+static_assert(MatchFuncDefinedV<std::tuple<char, std::tuple<char, char>, int>, Ds<char, Ds<int, Id<char, true> >, int>>);
+static_assert(MatchFuncDefinedV<std::tuple<char, std::tuple<char, char>, int>, Ds<char, Ds<WildCard, Id<char, true> >, int>>);
+static_assert(MatchFuncDefinedV<char, char>);
 
 #endif // _PATTERNS_H_
