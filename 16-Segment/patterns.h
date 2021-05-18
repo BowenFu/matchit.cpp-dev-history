@@ -818,7 +818,7 @@ public:
 // static_assert(!MatchFuncDefinedV<const int &, const Ds<char, Ds<char, Id<char, true> >, int> &>);
 // static_assert(!MatchFuncDefinedV<int, Ds<std::string, Ds<std::string, Id<std::string, true> >, int>>);
 static_assert(!MatchFuncDefinedV<char, std::string>);
-// static_assert(!MatchFuncDefinedV<char, Id<std::string>>);
+static_assert(!MatchFuncDefinedV<char, Id<std::string>>);
 static_assert(!MatchFuncDefinedV<std::size_t, std::string>);
 
 static_assert(MatchFuncDefinedV<std::string, std::string>);

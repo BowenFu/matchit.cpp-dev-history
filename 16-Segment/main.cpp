@@ -570,16 +570,22 @@ void test20()
             pattern(_) = [] { return -1; });
     };
     Id<char> x;
-    char y ='y';
+    char y = 'y';
     compare(matchPattern(
                 std::make_tuple('+',
                                 std::make_tuple('^',
-                                                y, 2),
+                                                std::make_tuple('s', y),
+                                                2),
                                 std::make_tuple('^',
-                                                y, 2)),
+                                                std::make_tuple('c', y),
+                                                2)),
                 ds('+',
-                   ds('^', x, 2),
-                   ds('^', x, 2))),
+                   ds('^',
+                      ds('s', x),
+                      2),
+                   ds('^',
+                      ds('c', x),
+                      2))),
             true);
     compare(matchPattern(
                 std::make_tuple('+', 1, std::make_tuple('^', std::make_tuple('s', y), 2)),
@@ -593,14 +599,14 @@ void test20()
                 std::make_tuple('+', 1, std::make_tuple('^', std::make_tuple('s', y), 2)),
                 ds('+', 1, ds('^', ds('s', x), 2))),
             true);
-    static_assert(MatchFuncDefinedV<std::tuple<std::tuple<char, char>, int>, Ds<Ds<char, Id<char, true> >, int>>);
-    static_assert(MatchFuncDefinedV<std::tuple<std::string, std::tuple<char, char>, int>, Ds<std::string, Ds<char, Id<char, true> >, int>>);
-    static_assert(MatchFuncDefinedV<std::tuple<bool, std::tuple<char, char>, int>, Ds<bool, Ds<char, Id<char, true> >, int>>);
-    static_assert(MatchFuncDefinedV<std::tuple<int, std::tuple<char, char>, int>, Ds<int, Ds<char, Id<char, true> >, int>>);
-    static_assert(MatchFuncDefinedV<std::tuple<int, std::tuple<char, char>, char>, Ds<int, Ds<char, Id<char, true> >, char>>);
-    static_assert(MatchFuncDefinedV<std::tuple<char, std::tuple<char, char>, char>, Ds<char, Ds<char, Id<char, true> >, char>>);
-    static_assert(MatchFuncDefinedV<std::tuple<char, std::tuple<char, char>, int>, Ds<char, Ds<char, Id<char, true> >, int>>);
-    static_assert(MatchFuncDefinedV<std::tuple<char, std::tuple<char, char>>, Ds<char, Ds<char, Id<char, true> >>>);
+    static_assert(MatchFuncDefinedV<std::tuple<std::tuple<char, char>, int>, Ds<Ds<char, Id<char, true> >, int> >);
+    static_assert(MatchFuncDefinedV<std::tuple<std::string, std::tuple<char, char>, int>, Ds<std::string, Ds<char, Id<char, true> >, int> >);
+    static_assert(MatchFuncDefinedV<std::tuple<bool, std::tuple<char, char>, int>, Ds<bool, Ds<char, Id<char, true> >, int> >);
+    static_assert(MatchFuncDefinedV<std::tuple<int, std::tuple<char, char>, int>, Ds<int, Ds<char, Id<char, true> >, int> >);
+    static_assert(MatchFuncDefinedV<std::tuple<int, std::tuple<char, char>, char>, Ds<int, Ds<char, Id<char, true> >, char> >);
+    static_assert(MatchFuncDefinedV<std::tuple<char, std::tuple<char, char>, char>, Ds<char, Ds<char, Id<char, true> >, char> >);
+    static_assert(MatchFuncDefinedV<std::tuple<char, std::tuple<char, char>, int>, Ds<char, Ds<char, Id<char, true> >, int> >);
+    static_assert(MatchFuncDefinedV<std::tuple<char, std::tuple<char, char> >, Ds<char, Ds<char, Id<char, true> > > >);
     assert(matchPattern(2, 2));
 }
 
