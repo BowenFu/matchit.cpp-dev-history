@@ -573,6 +573,7 @@ void test20()
     char y = 'y';
     compare(matchPattern(
                 std::make_tuple('+',
+                                1,
                                 std::make_tuple('^',
                                                 std::make_tuple('s', y),
                                                 2),
@@ -580,6 +581,7 @@ void test20()
                                                 std::make_tuple('c', y),
                                                 2)),
                 ds('+',
+                   ooo(1),
                    ds('^',
                       ds('s', x),
                       2),
