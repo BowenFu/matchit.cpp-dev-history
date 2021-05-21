@@ -336,15 +336,8 @@ void test11()
 
 void test12()
 {
-    auto const dsArray = [](auto const &v) {
-        Id<int> i;
-        return match(v)(
-            pattern(ds(_, i)) = [&i] { return *i; },
-            pattern(ds(_, _, i)) = [&i] { return *i; });
-    };
-
-    testMatch(std::array<int, 2>{1, 2}, 2, dsArray);
-    testMatch(std::array<int, 3>{1, 2, 3}, 3, dsArray);
+    compare(matchPattern(std::array<int, 2>{1, 2}, ds(ooo(_), _)), true);
+    compare(matchPattern(std::array<int, 3>{1, 2, 3}, ds(ooo(_), _)), true);
 }
 
 template <size_t I>
