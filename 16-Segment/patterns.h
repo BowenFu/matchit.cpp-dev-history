@@ -891,6 +891,7 @@ public:
 };
 
 static_assert(!MatchFuncDefinedV<std::string, char>);
+// TODO fix the two assertion compilations.
 // static_assert(!MatchFuncDefinedV<std::tuple<std::string>, Ds<std::string, int> >);
 // static_assert(!MatchFuncDefinedV<std::tuple<std::string>, Ds<char> >);
 
