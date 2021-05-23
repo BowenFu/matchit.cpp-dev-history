@@ -314,6 +314,10 @@ public:
         assert(mHasValue);
         return mValue;
     }
+    Type& operator* () const
+    {
+        return value();
+    }
 private:
     mutable Type mValue;
     mutable bool mHasValue{false};

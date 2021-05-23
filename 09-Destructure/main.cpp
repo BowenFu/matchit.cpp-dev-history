@@ -1,5 +1,7 @@
 #include "core.h"
 #include "patterns.h"
+#include <string>
+#include <iostream>
 
 bool func1()
 {
@@ -104,11 +106,34 @@ int32_t test3()
     return 0;
 }
 
+template <typename Tuple, typename PatternTuple, std::size_t... I>
+auto dsImpl(PatternTuple &&patterns, std::index_sequence<I...>)
+{
+    using std::get;
+    return and_((app(get<I, PatternTuple>, get<I>(patterns)), ...));
+}
+
+template <typename Tuple, typename... Patterns>
+auto ds(Patterns&&... patterns)
+{
+    return dsImpl<Tuple>(
+        std::forward_as_tuple(patterns...),
+        std::make_index_sequence<sizeof...(patterns)>{});
+}
 
 int main()
 {
     test1();
     test2();
     test3();
+
+    Id<int> xi;
+    Id<int> yi;
+    std::cout <<
+    match(std::make_tuple(1,2))
+    (
+        pattern(ds(xi, yi))
+            = [&xi, &yi]{return "at (" + std::to_string(*xi) + "m, " + std::to_string(*yi) + "m)";}
+    );
     return 0;
 }
