@@ -19,12 +19,12 @@ void testMatch(V const &input, U const &expected, Func matchFunc)
     }
 }
 
-bool func1(int32_t v)
+bool func1()
 {
     return true;
 }
 
-int64_t func2(int32_t v)
+int64_t func2()
 {
     return 12;
 }
@@ -40,13 +40,13 @@ int32_t test1()
             pattern(2) = func2,
             pattern(or_(56, 59)) = func2,
             // pattern(when([](auto&& x){return x < 0; })) = [](int32_t){ return -1; },
-            pattern(_ < 0) = [](int32_t){ return -1; },
-            pattern(_ < 10) = [](int32_t){ return -10; },
-            pattern(and_(_ < 17, _ > 15)) = [](int32_t){ return 16; },
-            pattern(app([](int32_t x){return x*x; }, when([](auto&& x){return x > 1000; }))) = [](int32_t){ return 1000; },
-            pattern(app([](int32_t x){return x*x; }, ii)) = [&ii](int32_t){ return ii.value() + 0; },
-            pattern(ii) = [&ii](int32_t){ return ii.value() + 1; },
-            pattern(_) = [](int32_t){ return 111; }
+            pattern(_ < 0) = []{ return -1; },
+            pattern(_ < 10) = []{ return -10; },
+            pattern(and_(_ < 17, _ > 15)) = []{ return 16; },
+            pattern(app([](int32_t x){return x*x; }, when([](auto&& x){return x > 1000; }))) = []{ return 1000; },
+            pattern(app([](int32_t x){return x*x; }, ii)) = [&ii]{ return ii.value() + 0; },
+            pattern(ii) = [&ii]{ return ii.value() + 1; },
+            pattern(_) = []{ return 111; }
         );
     };
     testMatch(1, true, matchFunc);
@@ -70,12 +70,12 @@ int32_t test2()
         auto [op, lhs, rhs] = input;
         return match(op, lhs, rhs)(
         // return match(input)(
-            pattern(ds('/', 1, 1)) = [](auto&&){ return 1; },
-            pattern(ds('/', 0, _)) = [](auto&&){ return 0; },
-            // pattern(ds('/', _)) = [](auto&&){ return 0; },
-            pattern(ds('*', i, j)) = [&i, &j](auto&&){ return i.value() * j.value(); },
-            pattern(ds('+', i, j)) = [&i, &j](auto&&){ return i.value() + j.value(); },
-            pattern(_) = [&i, &j](auto&&){ return -1; }
+            pattern(ds('/', 1, 1)) = []{ return 1; },
+            pattern(ds('/', 0, _)) = []{ return 0; },
+            // pattern(ds('/', _)) = []{ return 0; },
+            pattern(ds('*', i, j)) = [&i, &j]{ return i.value() * j.value(); },
+            pattern(ds('+', i, j)) = [&i, &j]{ return i.value() + j.value(); },
+            pattern(_) = [&i, &j]{ return -1; }
         );
     };
     testMatch(std::make_tuple('/', 1, 1), 1, matchFunc);
@@ -116,9 +116,9 @@ int32_t test3()
             return and_(app(&A::b, 1), app(&A::a, i));
         };
         return match(input)(
-            pattern(and_(app(&A::a, i), app(&A::b, 1))) = [&i](auto&&){ return i.value(); },
-            // pattern(dsA()) = [&i](auto&&){ return i.value(); },
-            pattern(_) = [](auto&&){ return -1; }
+            pattern(and_(app(&A::a, i), app(&A::b, 1))) = [&i]{ return i.value(); },
+            // pattern(dsA()) = [&i]{ return i.value(); },
+            pattern(_) = []{ return -1; }
         );
     };
     testMatch(A{3, 1}, 3, matchFunc);
@@ -201,9 +201,9 @@ int32_t test4()
         Id<One> one;
         Id<Two> two;
         return match(input)(
-            pattern(as<One, Kind::kONE>(one)) = [&one](auto&&){ return one.value().get(); },
-            pattern(kind<Kind::kTWO>) = [](auto&&){ return 2; },
-            pattern(_) = [](auto&&){return 3;}
+            pattern(as<One, Kind::kONE>(one)) = [&one]{ return one.value().get(); },
+            pattern(kind<Kind::kTWO>) = []{ return 2; },
+            pattern(_) = []{return 3;}
         );
     };
     testMatch(One{}, 1, matchFunc);
