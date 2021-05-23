@@ -5,7 +5,7 @@
 #include <cstdint>
 #include <algorithm>
 
-template <typename Value, typename... PatternPair>
+template <typename... PatternPair>
 class PatternPairsRetType
 {
 public:
@@ -22,7 +22,7 @@ public:
     template <typename... PatternPair>
     auto operator()(PatternPair const&... patterns)
     {
-        using RetType = typename PatternPairsRetType<Value, PatternPair...>::RetType;
+        using RetType = typename PatternPairsRetType<PatternPair...>::RetType;
         RetType result{};
         auto const func = [this, &result](auto const& pattern) -> bool
         {

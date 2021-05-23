@@ -20,8 +20,7 @@ template <typename Pattern, typename Func>
 class PatternPair
 {
 public:
-    template <typename Value>
-    using RetType = std::invoke_result_t<Func, Value>;
+    using RetType = std::invoke_result_t<Func>;
 
     PatternPair(Pattern const& pattern, Func const& func)
         : mPattern{pattern}
@@ -34,10 +33,9 @@ public:
         resetId(mPattern);
         return ::match(mPattern, value);
     }
-    template <typename Value>
-    auto execute(Value const& value) const
+    auto execute() const
     {
-        return mHandler(value);
+        return mHandler();
     }
 private:
     Pattern const& mPattern;

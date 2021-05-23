@@ -5,11 +5,11 @@
 #include <cstdint>
 #include <algorithm>
 
-template <typename Value, typename... PatternPair>
+template <typename... PatternPair>
 class PatternPairsRetType
 {
 public:
-    using RetType = std::common_type_t<typename PatternPair::template RetType<Value>...>;
+    using RetType = std::common_type_t<typename PatternPair::RetType...>;
 };
 
 template <typename Value>
@@ -22,13 +22,13 @@ public:
     template <typename... PatternPair>
     auto operator()(PatternPair const&... patterns)
     {
-        using RetType = typename PatternPairsRetType<Value, PatternPair...>::RetType;
+        using RetType = typename PatternPairsRetType<PatternPair...>::RetType;
         RetType result{};
         auto const func = [this, &result](auto const& pattern) -> bool
         {
             if (pattern.match(mValue))
             {
-                result = pattern.execute(mValue);
+                result = pattern.execute();
                 return true;
             }
             return false;
