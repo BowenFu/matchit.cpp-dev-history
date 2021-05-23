@@ -9,7 +9,7 @@ template <typename Value, typename... PatternPair>
 class PatternPairsRetType
 {
 public:
-    using RetType = std::common_type_t<typename PatternPair::template RetType<Value>...>;
+    using RetType = std::common_type_t<typename PatternPair::RetType...>;
 };
 
 template <typename Value>
@@ -28,7 +28,7 @@ public:
         {
             if (pattern.match(mValue))
             {
-                result = pattern.execute(mValue);
+                result = pattern.execute();
                 return true;
             }
             return false;
