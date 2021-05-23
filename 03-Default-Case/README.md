@@ -46,6 +46,7 @@ auto operator()(PatternPair const&... patterns)
         return false;
     };
     bool const matched = (func(patterns) || ...);
+    assert(matched);
     return result;
 }
 ```
@@ -173,3 +174,5 @@ auto x = match(input)(
 );
 ```
 Good job!
+
+Note that at the end of `MatchHelper::operator()` we assert that the match succeeds. Since it is not easy for us to detect the exhaustiveness of our patterns at compile time, we report errors at runtime. If we always put `pattern(_)` at the end of every matches, that assertion would never fail.
