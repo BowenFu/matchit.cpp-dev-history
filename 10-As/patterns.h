@@ -334,6 +334,10 @@ public:
     {
         return **mValue;
     }
+    Type const& operator* () const
+    {
+        return value();
+    }
 private:
     bool const mOwn;
     mutable std::shared_ptr<std::shared_ptr<Type const>> mValue = std::make_shared<std::shared_ptr<Type const>>();
@@ -388,15 +392,7 @@ public:
                 return std::apply(
                     [&patterns...](Values const&... values)
                     {
-                        if constexpr(sizeof...(patterns) != sizeof...(values))
-                        {
-                            std::cout << sizeof...(patterns) << "!=" << sizeof...(values) << std::endl;
-                            return false;
-                        }
-                        else
-                        {
-                            return (::match(patterns, values) && ...);
-                        }
+                        return (::match(patterns, values) && ...);
                     },
                     valueTuple);
             },

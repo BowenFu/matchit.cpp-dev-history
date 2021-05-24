@@ -103,21 +103,12 @@ int32_t test3()
         Id<int> j;
         Id<A> a;
         // compose patterns for destructuring struct A.
-        // auto const dsA = [&i]()
-        // // auto const dsA = [](Id<int>& x)
-        // {
-        //     return and_(app(&A::a, i), app(&A::b, 1));
-        // };
-        // Debug<decltype(dsA(i))> xx;
-        // auto x = and_(app(&A::b, 1), a); // and(app, )出错
-        auto x = [&]
+        auto const dsA = [&i]()
         {
-            // return and_(app(&A::b, 1));
-            return and_(app(&A::b, 1), app(&A::a, i));
+            return and_(app(&A::a, i), app(&A::b, 1));
         };
         return match(input)(
-            pattern(and_(app(&A::a, i), app(&A::b, 1))) = [&i]{ return i.value(); },
-            // pattern(dsA()) = [&i]{ return i.value(); },
+            pattern(dsA()) = [&i]{ return *i; },
             pattern(_) = []{ return -1; }
         );
     };
@@ -129,22 +120,18 @@ int32_t test3()
 
 enum class Kind
 {
-    kZERO,
     kONE,
     kTWO
 };
 
-class K
+class Num
 {
 public:
-    virtual ~K() = default;
-    virtual Kind kind() const
-    {
-        return Kind::kZERO;
-    }
+    virtual ~Num() = default;
+    virtual Kind kind() const = 0;
 };
 
-class One : public K
+class One : public Num
 {
 public:
     Kind kind() const override
@@ -157,7 +144,7 @@ public:
     }
 };
 
-class Two : public K
+class Two : public Num
 {
 public:
     Kind kind() const override
@@ -181,10 +168,10 @@ bool operator==(Two const&, Two const&)
 }
 
 template <Kind k>
-auto const kind = app(&K::kind, k);
+auto const kind = app(&Num::kind, k);
 
 template <typename T>
-auto const cast = [](K const& input){
+auto const cast = [](Num const& input){
     return static_cast<T const&>(input);
 }; 
 
@@ -196,7 +183,7 @@ auto const as = [](Id<T> const& id)
 
 int32_t test4()
 {
-    auto const matchFunc = [](K const& input)
+    auto const matchFunc = [](Num const& input)
     {
         Id<One> one;
         Id<Two> two;
