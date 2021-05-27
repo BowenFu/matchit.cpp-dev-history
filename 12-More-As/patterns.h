@@ -84,9 +84,6 @@ auto pattern(First const& f, Patterns const&... ps)
     return PatternHelper<Ds<First, Patterns...>>{ds(f, ps...)};
 }
 
-class WildCard{};
-constexpr WildCard _;
-
 template <typename Pattern>
 class PatternTraits
 {
@@ -100,6 +97,9 @@ public:
     {
     }
 };
+
+class WildCard{};
+constexpr WildCard _;
 
 template <>
 class PatternTraits<WildCard>
@@ -427,14 +427,7 @@ public:
                 return impl::apply(
                     [&patterns...](auto const&... values)
                     {
-                        if constexpr(sizeof...(patterns) != sizeof...(values))
-                        {
-                            return false;
-                        }
-                        else
-                        {
-                            return (::matchPattern(values, patterns) && ...);
-                        }
+                        return (::matchPattern(values, patterns) && ...);
                     },
                     valueTuple);
             },

@@ -176,14 +176,14 @@ template <Kind k>
 auto const kind = app(&Num::kind, k);
 
 template <typename T>
-auto const cast = [](auto const& input){
-    return static_cast<T const&>(input);
+auto const cast = [](auto && input){
+    return static_cast<T>(input);
 }; 
 
 template <typename T, Kind k>
 auto const as = [](Id<T> const& id)
 {
-    return and_(kind<k>, app(cast<T>, id));
+    return and_(kind<k>, app(cast<T const&>, id));
 };
 
 void test4()
