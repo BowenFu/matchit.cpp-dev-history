@@ -426,14 +426,7 @@ public:
                 return impl::apply(
                     [&patterns...](auto const&... values)
                     {
-                        if constexpr(sizeof...(patterns) != sizeof...(values))
-                        {
-                            return false;
-                        }
-                        else
-                        {
-                            return (::matchPattern(patterns, values) && ...);
-                        }
+		        return (::matchPattern(patterns, values) && ...);
                     },
                     valueTuple);
             },
