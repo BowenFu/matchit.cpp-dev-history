@@ -115,7 +115,7 @@ void test3()
             return and_(app(&A::a, x), app(&A::b, 1));
         };
         return match(input)(
-            pattern(dsA(i)) = [&i]{ return i.value(); },
+            pattern(dsA(i)) = [&i]{ return *i; },
             pattern(_) = []{ return -1; }
         );
     };
@@ -125,22 +125,18 @@ void test3()
 
 enum class Kind
 {
-    kZERO,
     kONE,
     kTWO
 };
 
-class K
+class Num
 {
 public:
-    virtual ~K() = default;
-    virtual Kind kind() const
-    {
-        return Kind::kZERO;
-    }
+    virtual ~Num() = default;
+    virtual Kind kind() const = 0;
 };
 
-class One : public K
+class One : public Num
 {
 public:
     Kind kind() const override
@@ -153,7 +149,7 @@ public:
     }
 };
 
-class Two : public K
+class Two : public Num
 {
 public:
     Kind kind() const override
@@ -177,7 +173,7 @@ bool operator==(Two const&, Two const&)
 }
 
 template <Kind k>
-auto const kind = app(&K::kind, k);
+auto const kind = app(&Num::kind, k);
 
 template <typename T>
 auto const cast = [](auto const& input){
@@ -192,7 +188,7 @@ auto const as = [](Id<T> const& id)
 
 void test4()
 {
-    auto const matchFunc = [](K const& input)
+    auto const matchFunc = [](Num const& input)
     {
         Id<One> one;
         Id<Two> two;
@@ -368,13 +364,11 @@ void test12()
     {
         Id<int> i;
         return match(v)(
-            pattern(ds(_, i)) = [&i]{return *i;},
-            pattern(ds(_, _, i)) = [&i]{return *i;}
+            pattern(ds(_, i)) = [&i]{return *i;}
         );
     };
 
     testMatch(std::array<int, 2>{1, 2}, 2, dsArray);
-    testMatch(std::array<int, 3>{1, 2, 3}, 3, dsArray);
 }
 
 template <size_t I>

@@ -40,7 +40,7 @@ public:
     bool matchValue(Value const& value) const
     {
         resetId(mPattern);
-        return ::matchPattern(value, mPattern);
+        return ::matchPattern(mPattern, value);
     }
     auto execute() const
     {
@@ -84,9 +84,6 @@ auto pattern(First const& f, Patterns const&... ps)
     return PatternHelper<Ds<First, Patterns...>>{ds(f, ps...)};
 }
 
-class WildCard{};
-constexpr WildCard _;
-
 template <typename Pattern>
 class PatternTraits
 {
@@ -100,6 +97,9 @@ public:
     {
     }
 };
+
+class WildCard{};
+constexpr WildCard _;
 
 template <>
 class PatternTraits<WildCard>
@@ -400,6 +400,7 @@ namespace impl
         {
             // This implementation is valid since C++20 (via P1065R2)
             // In C++17, a constexpr counterpart of std::invoke is actually needed here
+            using std::get;
             return std::invoke(std::forward<F>(f), get<I>(std::forward<Tuple>(t))...);
         }
     } // namespace detail
@@ -421,12 +422,10 @@ public:
     static bool matchPattern(Ds<Patterns...> const& dsPat, Tuple const& valueTuple)
     {
         return std::apply(
-            [&valueTuple](Patterns const&... patterns)
-            {
+            [&valueTuple](Patterns const &...patterns) {
                 return impl::apply(
-                    [&patterns...](auto const&... values)
-                    {
-		        return (::matchPattern(patterns, values) && ...);
+                    [&patterns...](auto const &...values) {
+                        return (::matchPattern(patterns, values) && ...);
                     },
                     valueTuple);
             },
