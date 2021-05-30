@@ -641,6 +641,5 @@ int main()
     test19();
     test20();
     test21();
-    int $x;
     return 0;
 }
