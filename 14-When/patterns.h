@@ -370,7 +370,6 @@ public:
         {
             return **mValue == value;
         }
-        // Debug<decltype(mValue)> x;
         if (mOwn)
         {
             *mValue = std::make_shared<Value>(value);
