@@ -116,22 +116,18 @@ void test3()
 
 enum class Kind
 {
-    kZERO,
     kONE,
     kTWO
 };
 
-class K
+class Num
 {
 public:
-    virtual ~K() = default;
-    virtual Kind kind() const
-    {
-        return Kind::kZERO;
-    }
+    virtual ~Num() = default;
+    virtual Kind kind() const = 0;
 };
 
-class One : public K
+class One : public Num
 {
 public:
     Kind kind() const override
@@ -144,7 +140,7 @@ public:
     }
 };
 
-class Two : public K
+class Two : public Num
 {
 public:
     Kind kind() const override
@@ -168,23 +164,24 @@ bool operator==(Two const &, Two const &)
 }
 
 template <Kind k>
-auto const kind = app(&K::kind, k);
+auto const kind = app(&Num::kind, k);
 
 template <typename T>
-auto const cast = [](auto const &input) {
-    return static_cast<T const &>(input);
-};
+auto const cast = [](auto && input){
+    return static_cast<T>(input);
+}; 
 
 template <typename T, Kind k>
-auto const as = [](Id<T> const &id) {
-    return and_(kind<k>, app(cast<T>, id));
+auto const as = [](auto const& id)
+{
+    return and_(kind<k>, app(cast<T const&>, id));
 };
 
 void test4()
 {
-    auto const matchFunc = [](K const &input) {
-        Id<One> one;
-        Id<Two> two;
+    auto const matchFunc = [](Num const &input) {
+        RefId<One> one;
+        RefId<Two> two;
         return match(input)(
             pattern(as<One, Kind::kONE>(one)) = [&one] { return one.value().get(); },
             pattern(kind<Kind::kTWO>) = [] { return 2; },
@@ -231,7 +228,7 @@ void test6()
 void test7()
 {
     auto const matchFunc = [](std::pair<int32_t, int32_t> ij) {
-        Id<std::tuple<int32_t const &, int32_t const &> > id;
+        RefId<std::tuple<int32_t const &, int32_t const &> > id;
         // delegate at to and_
         auto const at = [](auto &&id, auto &&pattern) {
             return and_(id, pattern);
@@ -644,5 +641,6 @@ int main()
     test19();
     test20();
     test21();
+    int $x;
     return 0;
 }
