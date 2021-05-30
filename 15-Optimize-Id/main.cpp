@@ -182,7 +182,7 @@ auto const cast = [](auto && input){
 }; 
 
 template <typename T, Kind k>
-auto const as = [](Id<T> const& id)
+auto const as = [](auto const& id)
 {
     return and_(kind<k>, app(cast<T const&>, id));
 };
@@ -191,8 +191,8 @@ void test4()
 {
     auto const matchFunc = [](Num const& input)
     {
-        Id<One> one;
-        Id<Two> two;
+        RefId<One> one;
+        RefId<Two> two;
         return match(input)(
             pattern(as<One, Kind::kONE>(one)) = [&one]{ return one.value().get(); },
             pattern(kind<Kind::kTWO>) = []{ return 2; },
@@ -244,7 +244,7 @@ void test7()
 {
     auto const matchFunc = [](std::pair<int32_t, int32_t> ij)
     {
-        Id<std::tuple<int32_t const&, int32_t const&>> id;
+        RefId<std::tuple<int32_t const&, int32_t const&>> id;
         // delegate at to and_
         auto const at = [](auto&& id, auto&& pattern)
         {
@@ -492,14 +492,15 @@ void test18()
 {
     auto const idNotOwn = [](auto const& x)
     {
-        RefId<int32_t> i;
+        // Id<std::unique_ptr<int32_t>> i;
+        RefId<std::unique_ptr<int32_t>> i;
         return match(x)(
-            pattern(i).when([&i]{return *i == 5;}) = [] { return 1; },
+            pattern(i).when([&i]{return *i && **i == 5;}) = [] { return 1; },
             pattern(_) = [] { return 2; }
             );
     };
-    testMatch(1, 2, idNotOwn);
-    testMatch(5, 1, idNotOwn);
+    testMatch(std::make_unique<int32_t>(1), 2, idNotOwn);
+    testMatch(std::make_unique<int32_t>(5), 1, idNotOwn);
 }
 
 int main()
