@@ -89,11 +89,6 @@ auto pattern(First const &f, Patterns const &...ps)
     return PatternHelper<Ds<First, Patterns...> >{ds(f, ps...)};
 }
 
-class WildCard
-{
-};
-constexpr WildCard _;
-
 template <typename Pattern>
 class PatternTraits
 {
@@ -108,6 +103,11 @@ public:
     {
     }
 };
+
+class WildCard
+{
+};
+constexpr WildCard _;
 
 template <>
 class PatternTraits<WildCard>

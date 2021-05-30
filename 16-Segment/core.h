@@ -19,8 +19,6 @@ public:
     using ValueT = Value const;
 };
 
-// TODO, use a special type for match generate tuples.
-// So that we do not copy any values.
 template <typename Value>
 class ValueType<Value, true>
 {

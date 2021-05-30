@@ -1,12 +1,6 @@
 #ifndef _PATTERNS_H_
 #define _PATTERNS_H_
 
-#if 1
-#define REQUIRES(x) if (!(x)){throw std::runtime_error("##x");}
-#else
-#define REQUIRES(x)
-#endif
-
 #include <memory>
 #include <iostream>
 
